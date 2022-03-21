@@ -38,6 +38,10 @@ class PCloud:
         '''config contains configuration dictionary,'''
         self.config = config
         self.auth = None
+        config_file = os.path.expanduser(os.path.expandvars(
+            config['config_file']))
+        if not os.path.exists(config_file):
+            save_json(config, config_file, indent="  ")
         return
 
     def _request(self,action):
@@ -118,9 +122,20 @@ class PCloud:
             auth = {"token": payload['auth'],
                     "expires": time.asctime(time.localtime(
                         time.time() + 31536000))}
-            add_auth_to_config(self.config['config_file'], auth)
+            self._add_auth_to_config(self.config['config_file'], auth, username)
         else:
             error('username/password required: need terminal device.')
+        return
+
+    def _add_auth_to_config(self, config_file, auth, username):
+        '''Update config file with auth token and (possibly) username.
+        '''
+        config = load_json(config_file)
+        if 'username' in config and not config['username']:
+            config['username'] = username
+        config['auth'] = auth
+        save_json(config, config_file, indent="  ")
+        self.config = config
         return
 
     def authenticate(self, reauth=False):
@@ -148,14 +163,6 @@ def _expired(expires):
     expiry = time.mktime(time.strptime(expires))
     return time.time() > expiry
 
-def add_auth_to_config(config_file, auth):
-    '''Update config file with auth token.
-    '''
-    config_file = os.path.expanduser(os.path.expandvars(config_file))
-    config = load_json(config_file)
-    config['auth'] = auth
-    save_json(config, config_file, indent="  ")
-    return
 
 def error(msg, die=True):
     print(f'\n** {sys.argv[0]}: {msg}', file=sys.stderr)
