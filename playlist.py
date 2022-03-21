@@ -165,6 +165,7 @@ def merge_config_options(config):
     return (config, args)
 
 def main(config):
+    pcloud = pcloudapi.PCloud(config)
     config, args = merge_config_options(config)
 
     cache_file =  os.path.expanduser(os.path.expandvars(
@@ -177,7 +178,6 @@ def main(config):
     verbose = config['verbose']
 
     try:
-        pcloud = pcloudapi.PCloud(config)
         pcloud.authenticate('reauth' in config)
 
         if 'list_playlists' in config:

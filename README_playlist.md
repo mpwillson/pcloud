@@ -84,9 +84,12 @@ uses of `playlist.py` will not required authentication.
   **music_folder**. The default is ''.
 
 -r
-: Force login reauthentication. Specify this option if use of the existing
-  authentication token produces a 'Login failed' message. The auth
-  token may have been deleted from the pCloud server.
+: Force login reauthentication. Specify this option if use of the
+  existing authentication token produces a 'Login failed' message. The
+  auth token may have been deleted from the pCloud server. A username
+  (if not already provided in the **config_file**) and password will
+  be requested. If a username is not present in the **config_file**,
+  the one entered will be saved.
 
 -s chunk_size
 : Sets the number of pCloud fileids to be uploaded to a playlist in
@@ -133,8 +136,7 @@ The authentication details are held as:
 
 The configuration file location can be overridden by the **-f**
 command option. Options provided on the command line override those
-obtained from the configuration file. Command line options are
-transitory; they will not be written to the configuration file.
+obtained from the configuration file.
 
 # NOTES
 
