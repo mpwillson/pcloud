@@ -108,7 +108,7 @@ example with all possible configuration options presented:
   "username": "user@example.com",
   "verbose": true,
   "playlist": {
-    "cache_file": '~/.cache/pcloud/playlist.cache',
+    "cache_file": "~/.cache/pcloud/playlist.cache",
     "chunk_size": 100,
     "music_folder": "/Music",
     "playlist_dir": "/rep/music/playlists",
