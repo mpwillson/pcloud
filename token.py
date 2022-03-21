@@ -4,7 +4,7 @@ NAME
   token.py - manage pCloud authentication tokens
 
 SYNOPSIS
-  python token.py [-d token_id] [-e endpoint] [-f config_file]
+  python token.py [-d token_id[,token_id] ...] [-e endpoint] [-f config_file]
                   [-l] [-r] [-u username ] [-v]
 
 For more, see README_token.md
@@ -16,12 +16,14 @@ import getopt
 import sys
 
 
-def delete_token(pcloud, tokens, target):
-    for token in tokens:
-        if token['tokenid'] == target:
-            pcloud.delete_token(token['tokenid'])
-            break
-        pcloudapi.error(f'no such token_id: {target}')
+def delete_token(pcloud, tokens, delete_ids):
+    delete_ids = [int(id) for id in delete_ids.split(',')]
+    token_ids = [token['tokenid'] for token in tokens]
+    for delete_id in delete_ids:
+        if delete_id in token_ids:
+            pcloud.delete_token(delete_id)
+        else:
+            pcloudapi.error(f'no such token_id: {delete_id}')
     return
 
 def merge_config_options(config):
@@ -37,7 +39,7 @@ def merge_config_options(config):
         opts,args = getopt.getopt(sys.argv[1:],'d:e:f:lru:v')
         for o,v in opts:
             if o == '-d':
-                cmd_config['delete_tokenid'] = int(v)
+                cmd_config['delete_tokenids'] = v
             elif o == '-l':
                 cmd_config['auth_list'] = True
             elif o == '-e':
@@ -58,9 +60,9 @@ def merge_config_options(config):
     return (config, args)
 
 def main(config):
+    pcloud = pcloudapi.PCloud(config)
     config, args = merge_config_options(config)
     try:
-        pcloud = pcloudapi.PCloud(config)
         pcloud.authenticate('reauth' in config)
         tokens = pcloud.list_tokens()['tokens']
 
@@ -70,8 +72,8 @@ def main(config):
                       f' {token["device"]}')
             return
 
-        if 'delete_tokenid' in config:
-            delete_token(pcloud, tokens, config['delete_tokenid'])
+        if 'delete_tokenids' in config:
+            delete_token(pcloud, tokens, config['delete_tokenids'])
 
     except pcloudapi.PCloudException as err:
         pcloudapi.error(f'error: {err.code}; message: {err.msg}\n'\
