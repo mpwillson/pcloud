@@ -74,8 +74,8 @@ The configuration file location can be overridden by the **-f**
 command option. Options provided on the command line override those
 obtained from the configuration file.
 
-if no **config-file** exists, the default internal configuration
-options will be written to the file.
+If the named **config-file** does not exist, the default internal
+configuration options will be written to the file.
 
 Utility programs may add their own specific configuration elements to
-the **config-file**.
+the **config-file**. See their README files for details.

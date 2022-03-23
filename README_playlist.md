@@ -43,11 +43,11 @@ upload of a new copy.
 `playlist.py` will logon to pCloud to upload the playlist
 collections. For the first connection, a username and password must be
 provided. The username can be set in the configuration file
-(`/.config/pcloud.json`}. However, the program will prompt for the
+(`~/.config/pcloud.json`}. However, the program will prompt for the
 password (not echoed). Once the initial authentication takes place,
 the auth token returned by pCloud is stored in the configuration
 file. The token will be used if it exists and has not expired. Further
-uses of `playlist.py` will not required authentication.
+uses of `playlist.py` will not require authentication.
 
 # OPTIONS
 These are the options supported by `playlist.py` in addition to the
@@ -67,7 +67,7 @@ unambiguous string.
 
 `--create-cache`
 : Recreates mp3 file data, read from the pCloud **music-folder**
-  folder, into **cache-file**. Use **-C** if the pCloud music
+  folder, into **cache-file**. Use **--create-cache** if the pCloud music
   collection has been updated since the last time the cache was
   created.
 
@@ -75,7 +75,7 @@ unambiguous string.
 : Set location for m3u playlist files. Default is './'.
 
 `--list`
-: Causes `playlist.py` to just list the existing pCloud playlists on
+: Causes `playlist.py` to list the existing pCloud playlists on
   stdout. No other action will be performed.
 
 `--music-folder music-folder`
@@ -125,13 +125,17 @@ playlist.
 # EXAMPLES
 
 Create three playlists in pCloud from local m3u files:
+
     `python playlist.py jazz.m3u rock.m3u party1.m3u`
 
 List existing pCloud playlist collections:
-    `python playlist.py -l`
+
+    `python playlist.py --list`
 
 Create a cache file for future use:
-    `python playlist.py -c folder.json poetry.m3u`
+
+    `python playlist.py --cache-file folder.json poetry.m3u`
 
 Re-create a cache file:
-    `python playlist.py -C -c folder.json`
+
+    `python playlist.py --create-cache -cache-file folder.json`
