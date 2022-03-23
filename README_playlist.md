@@ -2,11 +2,15 @@
 playlist.py: Convert local .m3u playlists into pCloud playlists.
 
 # SYNOPSIS
- python playlist.py [-c cache_file] [-C] [-d playlist_dir]
-                    [-e endpoint] [-f config_file]  [-l] [-m music_folder]
-                    [-p playlist_prefix] [-s chunk_size] [-r]
-                    [-u username] [-v]
+```
+ python playlist.py [common_options]
+                    [--cache-file cache-file] [--create-cache]
+                    [--dir playlist_dir]
+                    [--list] [--music-folder music-folder]
+                    [--prefix playlist-prefix]
+                    [--chunk-size chunk-size]
                     [m3u_playlist ...]
+```
 
 # DESCRIPTION
 Converts m3u format playlists held locally into pCloud format playlists.
@@ -46,64 +50,48 @@ file. The token will be used if it exists and has not expired. Further
 uses of `playlist.py` will not required authentication.
 
 # OPTIONS
--c cache_file
-: Reads mp3 file data from **cache_file**. If not specified, mp3 file
+These are the options supported by `playlist.py` in addition to the
+pcloud common options, Options may be abbreviated to the shortest
+unambiguous string.
+
+`--cachefile cache-file`
+: Reads mp3 file data from **cache-file**. If not specified, mp3 file
   data will be read from the pCloud /Music folder. Using a
-  **cache_file** will reduce network traffic for extensive music
-  collections. If the **cache_file** does not exist, it will be
-  created by downloading mp3 data from the pCloud **music_folder**.
+  **cache-file** will reduce network traffic for extensive music
+  collections. If the **cache-file** does not exist, it will be
+  created by downloading mp3 data from the pCloud **music-folder**.
 
--C
-: Recreates mp3 file data, read from the pCloud **music_folder**
-  folder, into **cache_file**. Use **-C** if the pCloud music
-  collection has been updated since the last time the cache was
-  created.
-
--d playlist_dir
-: Set location for m3u playlist files. Default is './'.
-
--e endpoint
-: Set endpoint for pCloud API.  Default is `https://eapi.pcloud.com`
-
--f config_file
-: Set name of configuration file. The default is
-  `~/.config/pcloud.json`. Configuration files are in JSON
-  format. See CONFIGURATION, below.
-
--l
-: Causes `playlist.py` to just list the existing pCloud playlists on
-  stdout. No other action will be performed.
-
--m music_folder
-: Set music folder name on pCloud.  Default is `/Music`. This option
-  implies **-C**, as the **cache_file** will need to be re-created.
-
--p playlist_prefix
-: Set the common prefix for mp3 files in playlists. It is assumed that
-  the directory hierarchy under **playlist_prefix** is the same as
-  **music_folder**. The default is ''.
-
--r
-: Force login reauthentication. Specify this option if use of the
-  existing authentication token produces a 'Login failed' message. The
-  auth token may have been deleted from the pCloud server. A username
-  (if not already provided in the **config_file**) and password will
-  be requested. If a username is not present in the **config_file**,
-  the one entered will be saved.
-
--s chunk_size
+`--chunk-size chunk-size`
 : Sets the number of pCloud fileids to be uploaded to a playlist in
   a single transaction. Default is 100.
 
--u username
-: Set pCloud username. This value is required and defaults to ''.
+`--create-cache`
+: Recreates mp3 file data, read from the pCloud **music-folder**
+  folder, into **cache-file**. Use **-C** if the pCloud music
+  collection has been updated since the last time the cache was
+  created.
 
--v
-: Cause `playlist.py` to issue messages on its actions. Default is False.
+`--dir playlist-dir`
+: Set location for m3u playlist files. Default is './'.
+
+`--list`
+: Causes `playlist.py` to just list the existing pCloud playlists on
+  stdout. No other action will be performed.
+
+`--music-folder music-folder`
+: Set music folder name on pCloud.  Default is `/Music`. This option
+  implies **--create-cache**, as the **cache-file** will need to be
+  re-created.
+
+`--prefix playlist-prefix`
+: Set the common prefix for mp3 files in playlists. It is assumed that
+  the directory hierarchy under **playlist-prefix** is the same as
+  **music-folder**. The default is ''.
 
 # CONFIGURATION
-The default configuration file is `./config/pcloud.json`. Here's an
-example with all possible configuration options presented:
+The default configuration file is `~/.config/pcloud.json`.
+`playlist.py` holds specific configuration details in the "playlist"
+component of the **config-file**. An example follows:
 
 ``` json
 {
@@ -111,32 +99,15 @@ example with all possible configuration options presented:
   "username": "user@example.com",
   "verbose": true,
   "playlist": {
-    "cache_file": "~/.cache/pcloud/playlist.cache",
-    "chunk_size": 100,
-    "music_folder": "/Music",
-    "playlist_dir": "/rep/music/playlists",
-    "playlist_prefix": "/rep/music"
-    }
+    "cache-file": "~/.cache/pcloud/playlist.cache",
+    "chunk-size": 100,
+    "music-folder": "/Music",
+    "dir": "/rep/music/playlists",
+    "prefix": "/rep/music"
   }
-
-```
-Authentication token details will be added to the configuration
-file once a successful login is effected. Username and password will
-not be requred again, until the authentication token expires (one
-year).
-
-The authentication details are held as:
-
-``` json
-"auth": {
-  "token": "some random string",
-  "expires": "Sat Mar 18 21:39:17 2023"
 }
-```
 
-The configuration file location can be overridden by the **-f**
-command option. Options provided on the command line override those
-obtained from the configuration file.
+```
 
 # NOTES
 
@@ -147,7 +118,7 @@ pCloud collections consist of a name, a type (1 for playlists) and a
 set of file identifiers (fileids). Fileids can be provided at the time
 of collection creation, or at a later time via the
 collection_linkfiles call. `playlist.py` adds fileids to a collection
-in **chunk_size** fileids at a time (default 100). Increasing this
+in **chunk-size** fileids at a time (default 100). Increasing this
 value will reduce the number of transactions needed to create a
 playlist.
 

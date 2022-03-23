@@ -2,43 +2,23 @@
 token.py: List and delete pCloud authentication tokens
 
 # SYNOPSIS
-python token.py   [-d token_id[,token_id] ...] [-e endpoint] [-f config_file]
-                  [-l] [-r] [-u username ] [-v]
+```
+python token.py   [common_options]
+                  [ {--delete token-id[,token-id] ... | --list} ]
+```
 
 # DESCRIPTION
 `token.py` will list the current set of valid authentication tokens
 held by the pCloud server. `token.py` can also delete these tokens,
-as identified by their token name.
+as identified by their token-id.
 
 # OPTIONS
--d token_id[,token_id] ...
+```--delete token-id[,token-id] ...```
 : Deletes tokens specified by a list of one or more **token_ids**.
 
--e endpoint
-: Set endpoint for pCloud API.  Default is `https://eapi.pcloud.com`
-
--f config_file
-: Set name of configuration file. The default is
-  `~/.config/pcloud.json`. Configuration files are in JSON
-  format. See CONFIGURATION, below.
-
--l
+```--list```
 : List all authentication tokens: id, expires date and name are shown.
 
--r
-: Force login reauthentication. Specify this option if use of the
-  existing authentication token produces a 'Login failed' message. The
-  auth token may have been deleted from the pCloud server. A username
-  (if not already provided in the **config_file**) and password will
-  be requested. If a username is not present in the **config_file**,
-  the one entered will be saved.
-
--u username
-: Set pCloud username. This value is required and defaults to ''.
-
--v
-: Cause `token.py` to issue messages on its actions. Default is False.
-
 # NOTES
-If `token.py` is using the token deleted by **-d**, it will lose
+If `token.py` is using the token deleted by **--delete**, it will lose
 connection with pCloud, as the token is immediately invalidated.

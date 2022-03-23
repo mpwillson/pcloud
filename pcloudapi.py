@@ -20,6 +20,7 @@ import os
 import getpass
 import time
 import copy
+import getopt
 
 class PCloudException(Exception):
     '''Exception class for pCloud class. '''
@@ -31,17 +32,36 @@ class PCloudException(Exception):
         return
 
 class PCloud:
-    '''Encapsulate pCloud API calls.  All methods return the result from
-    pCloud as a python data structure.
+    '''Encapsulate pCloud API calls.
+
+    All methods return the result from pCloud as a python data
+    structure.
+
     '''
-    def __init__(self, config):
-        '''config contains configuration dictionary,'''
+    def __init__(self, aspect_key=None, aspect_dict=None):
+        '''Instantiate PCloud instance.
+
+        If default configuration file exists, read it. Otherwise, use
+        base configuration. If aspect options are provided, add to
+        configuration if they do not already exist. Write updated or
+        new configuration back to the default configuration file.
+
+        '''
+        save_required = False
+        config = _base_config()
+        config_file = os.path.expanduser(os.path.expandvars(
+            config['config-file']))
+        if os.path.exists(config_file):
+            config = read_config(config, config_file)
+        else:
+            save_required = True
+        if aspect_key and aspect_key not in config:
+            config[aspect_key] = aspect_dict
+            save_required = True
+        if save_required: save_json(config, config_file, indent="  ")
+
         self.config = config
         self.auth = None
-        config_file = os.path.expanduser(os.path.expandvars(
-            config['config_file']))
-        if not os.path.exists(config_file):
-            save_json(config, config_file, indent="  ")
         return
 
     def _request(self,action):
@@ -110,6 +130,15 @@ class PCloud:
         return self._request(request)
 
     def _login(self):
+        '''Handles login to pCloud.
+
+        A username (if not already provided) and password are
+        requested to invoke the userinfo call. The resulting auth
+        token is saved in an instance variable. It is also saved in
+        the configuration dict and configuration file, along with the
+        computed auth token expiry.
+
+        '''
         if sys.stdin.isatty():
             if self.config['username']:
                 username = self.config['username']
@@ -122,7 +151,7 @@ class PCloud:
             auth = {"token": payload['auth'],
                     "expires": time.asctime(time.localtime(
                         time.time() + 31536000))}
-            self._add_auth_to_config(self.config['config_file'], auth, username)
+            self._add_auth_to_config(self.config['config-file'], auth, username)
         else:
             error('username/password required: need terminal device.')
         return
@@ -141,11 +170,10 @@ class PCloud:
     def authenticate(self, reauth=False):
         '''Authenticate to pCloud endpoint.
 
-        If we have a valid auth token, no
-        username/password is required. Otherwise, username (if not
-        already provided) and password are requested for a call to
-        userinfo. The resulting auth token is save in the
-        configuration dict and configuration file.
+        If we have a valid auth token, no username/password is
+        required. Otherwise, invoke a login to pCloud. If reauth is
+        True, login is forced.
+
         '''
         if not reauth:
             if 'auth' in self.config:
@@ -163,7 +191,6 @@ def _expired(expires):
     expiry = time.mktime(time.strptime(expires))
     return time.time() > expiry
 
-
 def error(msg, die=True):
     print(f'\n** {sys.argv[0]}: {msg}', file=sys.stderr)
     if die: sys.exit(1)
@@ -172,9 +199,9 @@ def error(msg, die=True):
 def chunked(array, chunk_size):
     '''Return array in chunks of chunk_size.
 
-    Return tuple of chunk and
-    remaining values in array, which should be passed in to the next call
-    as array.'''
+    Return tuple of chunk and remaining values in array, which should
+    be passed in to the next call as array.
+    '''
     if chunk_size >= len(array):
         return (array, None)
     else:
@@ -184,6 +211,7 @@ def save_json(data, filename, indent=None):
     '''Write data to filename in JSON format.
 
     Creates directories as necessary.
+
     '''
     filename = os.path.expanduser(os.path.expandvars(filename))
     dirname = os.path.dirname(filename)
@@ -207,6 +235,7 @@ def read_config(config, config_file, optional=True):
 
     Merge into config dict. If optional is True, the config file need
     not exist. The merged config dict is returned.
+
     '''
     n_config = copy.deepcopy(config)
     config_file = os.path.expanduser(os.path.expandvars(config_file))
@@ -217,12 +246,47 @@ def read_config(config, config_file, optional=True):
         if not optional: error(f'config file does not exist: {config_file}')
     return n_config
 
-def base_config():
-    '''Return config dictionary with minimal config information.'''
-    config = {'config_file': '~/.config/pcloud.json',
+def merge_command_options(config, aspect_key, aspect_opts):
+    '''Merge options from command line into configuration file.
+
+    The config argument holds the configuration dictionary, either the
+    default, or that read from the configuration file. The core config
+    options on the command line are handled. Additional configuration
+    for an aspect (client program of pcloudapi), that is the aspect
+    key name and the command line option flags, are passed in
+    aspect_key and aspect opts, respectively.
+
+    Return value is a tuple of the merged configuration dictionary and
+    remaining, non-option, command line arguments.
+
+    '''
+    cmd_config = copy.deepcopy(config)
+    try:
+        opts,args = getopt.getopt(sys.argv[1:],'e:f:ru:v', aspect_opts)
+        for o,v in opts:
+            if o == '-e':
+                cmd_config['endpoint'] = v
+            elif o =='-f':
+                cmd_config['config_-ile'] = v
+                config = read_config(config, v, optional=False)
+            elif o == '-u':
+                cmd_config['username'] = v
+            elif o == '-v':
+                cmd_config['verbose'] = True
+            else:
+                cmd_config[aspect_key][o[2:]] = v if v else True
+    except getopt.GetoptError as err:
+        error(f'unknown option: -{err.opt}')
+
+    return (cmd_config, args)
+
+def _base_config():
+    '''Return config dictionary with minimal default config information.
+
+    '''
+    config = {'config-file': '~/.config/pcloud.json',
               'endpoint': 'https://eapi.pcloud.com',
-              'username': '',
-              'verbose': False
+              'username': ''
               }
     return config
 

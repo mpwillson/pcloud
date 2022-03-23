@@ -4,20 +4,17 @@ NAME
   token.py - manage pCloud authentication tokens
 
 SYNOPSIS
-  python token.py [-d token_id[,token_id] ...] [-e endpoint] [-f config_file]
-                  [-l] [-r] [-u username ] [-v]
+  python token.py [common_options]
+                  {[--delete token_id[,token_id] ...] | [--list] }
 
 For more, see README_token.md
 
 '''
 
 import pcloudapi
-import getopt
 import sys
 
-
 def delete_token(pcloud, tokens, delete_ids):
-    delete_ids = [int(id) for id in delete_ids.split(',')]
     token_ids = [token['tokenid'] for token in tokens]
     for delete_id in delete_ids:
         if delete_id in token_ids:
@@ -26,54 +23,27 @@ def delete_token(pcloud, tokens, delete_ids):
             pcloudapi.error(f'no such token_id: {delete_id}')
     return
 
-def merge_config_options(config):
-    '''Merge options from command line into configuration file.
-
-    The config argument holds the default configuration dictionary. If
-    no config file is specified as an option, the default config file
-    is read. Return value is a tuple of the merged configuration
-    dictionary and remaining command line arguments.
-    '''
-    cmd_config = pcloudapi.read_config(config, config['config_file'])
-    try:
-        opts,args = getopt.getopt(sys.argv[1:],'d:e:f:lru:v')
-        for o,v in opts:
-            if o == '-d':
-                cmd_config['delete_tokenids'] = v
-            elif o == '-l':
-                cmd_config['auth_list'] = True
-            elif o == '-e':
-                cmd_config['endpoint'] = v
-            elif o =='-f':
-                cmd_config['config_file'] = v
-                config = read_config(config, v, optional=False)
-            elif o == '-r':
-                config['reauth'] = True
-            elif o == '-u':
-                cmd_config['username'] = v
-            elif o == '-v':
-                cmd_config['verbose'] = True
-    except getopt.GetoptError as err:
-        error(f'unknown option: -{err.opt}')
-
-    config.update(cmd_config)
-    return (config, args)
-
-def main(config):
-    pcloud = pcloudapi.PCloud(config)
-    config, args = merge_config_options(config)
+def main():
+    pcloud = pcloudapi.PCloud()
+    aspect_opts = ('delete=', 'list')
+    aspect_key = 'token'
+    pcloud.config[aspect_key] = {}
+    config, args = pcloudapi.merge_command_options(pcloud.config, aspect_key,
+                                                   aspect_opts)
     try:
         pcloud.authenticate('reauth' in config)
         tokens = pcloud.list_tokens()['tokens']
 
-        if 'auth_list' in config:
+        if 'list' in config[aspect_key]:
             for token in tokens:
                 print(f'{token["tokenid"]:10}: {token["expires"][:-5]}'\
                       f' {token["device"]}')
             return
 
-        if 'delete_tokenids' in config:
-            delete_token(pcloud, tokens, config['delete_tokenids'])
+        if 'delete' in config[aspect_key]:
+            delete_tokenids = \
+                [int(v) for v in config[aspect_key]['delete'].split(',')]
+            delete_token(pcloud, tokens, delete_tokenids)
 
     except pcloudapi.PCloudException as err:
         pcloudapi.error(f'error: {err.code}; message: {err.msg}\n'\
@@ -81,4 +51,4 @@ def main(config):
     return
 
 if __name__ == '__main__':
-    main(pcloudapi.base_config())
+    main()
