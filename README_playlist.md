@@ -72,7 +72,7 @@ unambiguous string.
   created.
 
 `--dir playlist-dir`
-: Set location for m3u playlist files. Default is './'.
+: Set location for m3u playlist files. Default is the empty string.
 
 `--list`
 : Causes `playlist.py` to list the existing pCloud playlists on
@@ -86,7 +86,7 @@ unambiguous string.
 `--prefix playlist-prefix`
 : Set the common prefix for mp3 files in playlists. It is assumed that
   the directory hierarchy under **playlist-prefix** is the same as
-  **music-folder**. The default is ''.
+  **music-folder**. The default is the empty string.
 
 # CONFIGURATION
 The default configuration file is `~/.config/pcloud.json`.
