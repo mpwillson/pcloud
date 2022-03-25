@@ -55,9 +55,11 @@ class PCloud:
             config = read_config(config, config_file)
         else:
             save_required = True
-        if aspect_key and aspect_key not in config:
-            config[aspect_key] = aspect_dict
-            save_required = True
+        if aspect_key:
+            if not aspect_dict: raise ValueError('no aspect_dict provided')
+            if not aspect_key in config:
+                config[aspect_key] = aspect_dict
+                save_required = True
         if save_required: save_json(config, config_file, indent="  ")
 
         self.config = config
@@ -219,6 +221,7 @@ def save_json(data, filename, indent=None):
         os.makedirs(dirname)
     with open(filename,'w') as f:
         json.dump(data, f, indent=indent)
+        f.write('\n')
     return
 
 def load_json(filename):
