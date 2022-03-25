@@ -129,7 +129,7 @@ def main():
         'cache-file': '',
         'chunk-size': 100,
         'music-folder': '/Music',
-        'dir': './',
+        'dir': '',
         'prefix': ''}
     playlist_opts = [opt+'=' for opt in playlist.keys()] + \
         ['create-cache','list']
@@ -161,7 +161,8 @@ def main():
            create_cache or not cache_file:
                 if verbose: print('Loading music collection from pCloud ...')
                 folder = pcloud.list_folder(path=music_folder)
-                if create_cache or not os.path.exists(cache_file):
+                if create_cache or (cache_file and
+                                    not os.path.exists(cache_file)):
                     pcloudapi.save_json(folder, cache_file)
                     if verbose:
                         print(f'Cached music collection to {cache_file}')
