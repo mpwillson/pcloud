@@ -117,9 +117,13 @@ def validate_config(cmd_config, config):
     if 'create_cache' in playlist and not \
        playlist['cache-file']:
         pcloudapi.error('cache file name must be provided for create')
-    chunk_size = playlist['chunk-size']
-    if chunk_size <= 0 or chunk_size > 1000:
+
+    chunk_size = int(playlist['chunk-size'])
+    # more than 300 fileids seems to cause "Remote end closed
+    # connection without response"
+    if chunk_size <= 0 or chunk_size > 300:
         pcloudapi.error(f'invalid chunk size specified: {chunk_size}')
+    playlist['chunk-size'] = chunk_size
 
     return
 
