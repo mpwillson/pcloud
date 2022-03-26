@@ -142,7 +142,7 @@ class PCloud:
 
         '''
         if sys.stdin.isatty():
-            if self.config['username']:
+            if 'username' in self.config and self.config['username']:
                 username = self.config['username']
             else:
                 username = input('Enter pCloud username: ')
@@ -277,9 +277,10 @@ def merge_command_options(config, aspect_key, aspect_opts):
             elif o == '-v':
                 cmd_config['verbose'] = True
             else:
-                cmd_config[aspect_key][o[2:]] = v if v else True
+                cmd_config[aspect_key][o[2:]] = \
+                    v if o[2:]+'=' in aspect_opts else True
     except getopt.GetoptError as err:
-        error(f'unknown option: -{err.opt}')
+        error(err)
 
     return (cmd_config, args)
 
