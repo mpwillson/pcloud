@@ -150,7 +150,7 @@ def main():
     music_folder = config['playlist']['music-folder']
     dir = config['playlist']['dir']
     prefix = config['playlist']['prefix']
-    verbose = 'verbose' in config
+    verbose = config['verbose'] if 'verbose' in config else False
 
     try:
         pcloud.authenticate('reauth' in config)
