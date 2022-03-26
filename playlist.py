@@ -143,19 +143,19 @@ def main():
                                                    playlist_opts)
     validate_config(config, pcloud.config)
 
-    cache_file =  os.path.expanduser(os.path.expandvars(
-        config['playlist']['cache-file']))
-    create_cache = 'create-cache' in config['playlist']
-    chunk_size = config['playlist']['chunk-size']
-    music_folder = config['playlist']['music-folder']
-    dir = config['playlist']['dir']
-    prefix = config['playlist']['prefix']
-    verbose = config['verbose'] if 'verbose' in config else False
+    playlist = config['playlist']
+    cache_file =  os.path.expanduser(os.path.expandvars(playlist['cache-file']))
+    create_cache = 'create-cache' in playlist
+    chunk_size = playlist['chunk-size']
+    music_folder = playlist['music-folder']
+    dir = playlist['dir']
+    prefix = playlist['prefix']
+    verbose = config['verbose']
 
     try:
         pcloud.authenticate('reauth' in config)
 
-        if 'list' in config['playlist']:
+        if 'list' in playlist:
             playlists = pcloud_playlist_names(pcloud)
             for name in playlists.keys():
                 print(name)
