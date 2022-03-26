@@ -142,7 +142,7 @@ class PCloud:
 
         '''
         if sys.stdin.isatty():
-            if 'username' in self.config and self.config['username']:
+            if self.config['username']:
                 username = self.config['username']
             else:
                 username = input('Enter pCloud username: ')
@@ -290,7 +290,8 @@ def _base_config():
     '''
     config = {'config-file': '~/.config/pcloud.json',
               'endpoint': 'https://eapi.pcloud.com',
-              'username': ''
+              'username': '',
+              'verbose': False
               }
     return config
 
