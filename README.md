@@ -53,6 +53,7 @@ example with the core configuration options:
   "config-file": "~/.config/pcloud.json",
   "endpoint": "https://eapi.pcloud.com",
   "username": "user@example.com",
+  "verbose": false
 }
 
 ```
