@@ -85,6 +85,9 @@ class PCloud:
             raise PCloudException(url, -1, 'invalid response from endpoint')
         except UnicodeError as err:
             raise PCloudException(url, -1, err)
+        except http.client.RemoteDisconnected as err:
+            # if URL string too long?
+            raise PCloudException(url, -1, err)
         return payload
 
     def userinfo(self, username, password):
