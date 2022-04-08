@@ -75,8 +75,8 @@ unambiguous string.
 : Set location for m3u playlist files. Default is the empty string.
 
 `--list`
-: Causes `playlist.py` to list the existing pCloud playlists on
-  stdout. No other action will be performed.
+: List the existing pCloud playlists on stdout. No other
+  action will be performed.
 
 `--music-folder music-folder`
 : Set music folder name on pCloud.  Default is `/Music`. This option
@@ -111,7 +111,7 @@ component of the **config-file**. An example follows:
 
 # NOTES
 
-`playlist.sh` is written in Python 3. Tested with versions 3.8 and
+`playlist.py` is written in Python 3. Tested with versions 3.8 and
 3.9.
 
 pCloud collections consist of a name, a type (1 for playlists) and a
