@@ -17,7 +17,8 @@ as identified by their token-id.
 : Deletes tokens specified by a list of one or more **token_ids**.
 
 ```--list```
-: List all authentication tokens: id, expires date and name are shown.
+: List all authentication tokens: token-id, expiry date and client
+  name are shown.
 
 # NOTES
 If `token.py` is using the token deleted by **--delete**, it will lose

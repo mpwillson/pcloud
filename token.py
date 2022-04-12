@@ -23,6 +23,18 @@ def delete_token(pcloud, tokens, delete_ids):
             pcloudapi.error(f'no such token_id: {delete_id}')
     return
 
+def list_tokens(tokens):
+    '''Print key token details from tokens list.
+
+    Device attribute is truncated to ensure line is no longer than 80
+    characters.
+    '''
+    print('%12s %-26s %s'%('Token-id','Expiry Date','Client'))
+    for token in tokens:
+        print(f'{token["tokenid"]:12} {token["expires"][:-5]}'\
+              f' {token["device"][:40]}')
+    return
+
 def main():
     pcloud = pcloudapi.PCloud()
     aspect_opts = ('delete=', 'list')
@@ -35,12 +47,8 @@ def main():
         tokens = pcloud.list_tokens()['tokens']
 
         if 'list' in config[aspect_key]:
-            for token in tokens:
-                print(f'{token["tokenid"]:10}: {token["expires"][:-5]}'\
-                      f' {token["device"]}')
-            return
-
-        if 'delete' in config[aspect_key]:
+            list_tokens(tokens)
+        elif 'delete' in config[aspect_key]:
             delete_tokenids = \
                 [int(v) for v in config[aspect_key]['delete'].split(',')]
             delete_token(pcloud, tokens, delete_tokenids)
