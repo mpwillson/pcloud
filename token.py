@@ -20,7 +20,7 @@ def delete_token(pcloud, tokens, delete_ids):
         if delete_id in token_ids:
             pcloud.delete_token(delete_id)
         else:
-            pcloudapi.error(f'no such token_id: {delete_id}')
+            pcloudapi.error(f'no such token-id: {delete_id}')
     return
 
 def list_tokens(tokens):
@@ -49,8 +49,12 @@ def main():
         if 'list' in config[aspect_key]:
             list_tokens(tokens)
         elif 'delete' in config[aspect_key]:
-            delete_tokenids = \
-                [int(v) for v in config[aspect_key]['delete'].split(',')]
+            try:
+                delete_tokenids = \
+                    [int(v) for v in config[aspect_key]['delete'].split(',')]
+            except ValueError as err:
+                pcloudapi.error(f'invalid token-id: {err}')
+                return
             delete_token(pcloud, tokens, delete_tokenids)
 
     except pcloudapi.PCloudException as err:
