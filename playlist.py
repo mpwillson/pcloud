@@ -127,6 +127,43 @@ def validate_config(cmd_config, config):
 
     return
 
+def list_playlists(pcloud):
+    playlists = pcloud_playlist_names(pcloud)
+    for name in playlists.keys():
+        print(name)
+    return
+
+def process_playlists(pcloud, pl_config, verbose, pl_files):
+    cache_file =  os.path.expanduser(
+        os.path.expandvars(pl_config['cache-file']))
+    create_cache = 'create-cache' in pl_config
+    chunk_size = pl_config['chunk-size']
+    music_folder = pl_config['music-folder']
+    dir = pl_config['dir']
+    prefix = pl_config['prefix']
+
+    if (cache_file and not os.path.exists(cache_file)) or \
+       create_cache or not cache_file:
+            if verbose: print('Loading music collection from pCloud ...')
+            folder = pcloud.list_folder(path=music_folder)
+            if create_cache or (cache_file and
+                                not os.path.exists(cache_file)):
+                pcloudapi.save_json(folder, cache_file)
+                if verbose:
+                    print(f'Cached music collection to {cache_file}')
+    else:
+        if verbose: print('Loading music collection from cache file ...')
+        folder = pcloudapi.load_json(cache_file)
+
+    try:
+        fileids = mp3_dict(folder['metadata']['contents'])
+    except KeyError as err:
+        pcloudapi.error(f'unable to decode music_folder; corrupt cache?')
+
+    upload_playlists(pcloud, fileids, pl_files, dir, prefix, chunk_size,
+                     verbose)
+    return
+
 def main():
     # default playlist options
     playlist = {
@@ -144,44 +181,13 @@ def main():
                                                    aspect_opts)
     validate_config(config, pcloud.config)
 
-    playlist = config[aspect_key]
-    cache_file =  os.path.expanduser(os.path.expandvars(playlist['cache-file']))
-    create_cache = 'create-cache' in playlist
-    chunk_size = playlist['chunk-size']
-    music_folder = playlist['music-folder']
-    dir = playlist['dir']
-    prefix = playlist['prefix']
-    verbose = config['verbose']
-
     try:
         pcloud.authenticate('reauth' in config)
-
-        if 'list' in playlist:
-            playlists = pcloud_playlist_names(pcloud)
-            for name in playlists.keys():
-                print(name)
-            return
-
-        if (cache_file and not os.path.exists(cache_file)) or \
-           create_cache or not cache_file:
-                if verbose: print('Loading music collection from pCloud ...')
-                folder = pcloud.list_folder(path=music_folder)
-                if create_cache or (cache_file and
-                                    not os.path.exists(cache_file)):
-                    pcloudapi.save_json(folder, cache_file)
-                    if verbose:
-                        print(f'Cached music collection to {cache_file}')
+        if 'list' in config[aspect_key]:
+            list_playlists(pcloud)
         else:
-            if verbose: print('Loading music collection from cache file ...')
-            folder = pcloudapi.load_json(cache_file)
-
-        try:
-            fileids = mp3_dict(folder['metadata']['contents'])
-        except KeyError as err:
-            pcloudapi.error(f'unable to decode music_folder; corrupt cache?')
-
-        upload_playlists(pcloud, fileids, args, dir, prefix,
-                         chunk_size, verbose)
+            process_playlists(pcloud, config[aspect_key], config['verbose'],
+                              args)
     except pcloudapi.PCloudException as err:
         pcloudapi.error(f'error: {err.code}; message: {err.msg}\n'\
                         f'Url: {err.url}')
