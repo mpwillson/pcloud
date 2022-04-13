@@ -135,15 +135,16 @@ def main():
         'music-folder': '/Music',
         'dir': '',
         'prefix': ''}
-    playlist_opts = [opt+'=' for opt in playlist.keys()] + \
+    aspect_key = 'playlist'
+    aspect_opts = [opt+'=' for opt in playlist.keys()] + \
         ['create-cache','list']
 
-    pcloud = pcloudapi.PCloud('playlist', playlist)
-    config, args = pcloudapi.merge_command_options(pcloud.config, 'playlist',
-                                                   playlist_opts)
+    pcloud = pcloudapi.PCloud(aspect_key, playlist)
+    config, args = pcloudapi.merge_command_options(pcloud.config, aspect_key,
+                                                   aspect_opts)
     validate_config(config, pcloud.config)
 
-    playlist = config['playlist']
+    playlist = config[aspect_key]
     cache_file =  os.path.expanduser(os.path.expandvars(playlist['cache-file']))
     create_cache = 'create-cache' in playlist
     chunk_size = playlist['chunk-size']
