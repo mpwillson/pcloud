@@ -68,6 +68,8 @@ def create_playlist(pcloud, name, ids, chunk_size=100):
     while next_ids:
         chunk_ids, next_ids = pcloudapi.chunked(next_ids, chunk_size)
         result = pcloud.collection_linkfiles(coll_id, chunk_ids)
+        # avoid "pCloud: internal error" by a small sleep?
+        time.sleep(.25)
         nchunks += 1
     return nchunks
 
