@@ -18,6 +18,7 @@ import os
 import getopt
 import urllib.parse
 import pcloudapi
+import time
 
 def walk(folder, root, fileid):
     '''Recursively walk the pCloud directory structure.
@@ -95,7 +96,12 @@ def upload_playlists(pcloud, fileids, files, dir, m3u_prefix,
         pcloud_name = os.path.basename(file).replace('.m3u', '')
         if pcloud_name in pcloud_playlists:
             pcloud.collection_delete(pcloud_playlists[pcloud_name])
-        ids = [fileids[track] for track in m3u]
+            time.sleep(1)
+        try:
+            ids = [fileids[track] for track in m3u]
+        except KeyError as err:
+            pcloudapi.error(f'playlist track not found on pCloud '
+                            f'(stale cache?): {err}')
         if verbose:
             print(f'Creating playlist {pcloud_name} ... ', end='')
             sys.stdout.flush()
