@@ -21,6 +21,7 @@ import getpass
 import time
 import copy
 import getopt
+import http
 
 class PCloudException(Exception):
     '''Exception class for pCloud class. '''
