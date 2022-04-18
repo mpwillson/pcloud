@@ -94,6 +94,9 @@ def upload_playlists(pcloud, fileids, files, dir, m3u_prefix,
         if not os.path.exists(file):
             pcloudapi.error(f'playlist file does not exist: {file}',die=False)
             continue
+        if verbose:
+            print(f'Creating playlist {pcloud_name} ... ', end='')
+            sys.stdout.flush()
         m3u = read_m3u_file(file,remove=m3u_prefix)
         pcloud_name = os.path.basename(file).replace('.m3u', '')
         if pcloud_name in pcloud_playlists:
@@ -104,9 +107,6 @@ def upload_playlists(pcloud, fileids, files, dir, m3u_prefix,
         except KeyError as err:
             pcloudapi.error(f'playlist track not found on pCloud '
                             f'(stale cache?): {err}')
-        if verbose:
-            print(f'Creating playlist {pcloud_name} ... ', end='')
-            sys.stdout.flush()
         nchunks = create_playlist(pcloud, urllib.parse.quote(pcloud_name), ids,
                                   chunk_size=chunk_size)
         if verbose: print(f'done using {nchunks} chunks.')
