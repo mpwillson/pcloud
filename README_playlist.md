@@ -54,7 +54,7 @@ These are the options supported by `playlist.py` in addition to the
 pcloud common options, Options may be abbreviated to the shortest
 unambiguous string.
 
-`--cachefile cache-file`
+`--cache-file cache-file`
 : Reads mp3 file data from **cache-file**. If not specified, mp3 file
   data will be read from the pCloud /Music folder. Using a
   **cache-file** will reduce network traffic for extensive music
