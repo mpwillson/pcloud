@@ -23,6 +23,16 @@ import copy
 import getopt
 import http
 
+class Key():
+    CONFIG_FILE = 'config-file'
+    ENDPOINT = 'endpoint'
+    USERNAME = 'username'
+    VERBOSE = 'verbose'
+    REAUTH = 'reauth'
+    AUTH = 'auth'
+    TOKEN = 'token'
+    EXPIRES = 'expires'
+
 class PCloudException(Exception):
     '''Exception class for pCloud class. '''
     def __init__(self, url, code, msg):
@@ -51,7 +61,7 @@ class PCloud:
         save_required = False
         config = _base_config()
         config_file = os.path.expanduser(os.path.expandvars(
-            config['config-file']))
+            config[Key.CONFIG_FILE]))
         if os.path.exists(config_file):
             config = read_config(config, config_file)
         else:
@@ -67,11 +77,11 @@ class PCloud:
         self.auth = None
         return
 
-    def _request(self,action):
+    def _request(self, action):
         result = 0
         payload = None
         try:
-            url = f'{self.config["endpoint"]}/{action}'
+            url = f'{self.config[Key.ENDPOINT]}/{action}'
             req = urllib.request.Request(url, headers={'User-Agent': 'hydrus'})
             resp = urllib.request.urlopen(req)
             payload = json.loads(resp.read().decode('utf-8'))
@@ -95,7 +105,7 @@ class PCloud:
         request = f'userinfo?getauth=1&logout=1&username={username}&'\
             f'password={password}'
         payload = self._request(request)
-        if payload: self.auth = payload['auth']
+        if payload: self.auth = payload[Key.AUTH]
         return payload
 
     def collection_list(self, type=1):
@@ -146,34 +156,33 @@ class PCloud:
 
         '''
         if sys.stdin.isatty():
-            if self.config['username']:
-                username = self.config['username']
+            if self.config[Key.USERNAME]:
+                username = self.config[Key.USERNAME]
             else:
                 username = input('Enter pCloud username: ')
             password = getpass.getpass('Enter pCloud password: ')
             payload = self.userinfo(username, password)
-            self.auth = payload['auth']
+            self.auth = payload[Key.AUTH]
             # pCloud token expires at (now + 31536000 seconds i.e. 1 year)
-            auth = {"token": payload['auth'],
-                    "expires": time.asctime(time.localtime(
+            auth = {Key.TOKEN: payload[Key.AUTH],
+                    Key.EXPIRES: time.asctime(time.localtime(
                         time.time() + 31536000))}
-            self._add_auth_to_config(self.config['config-file'], auth, username)
+            self._add_auth_to_config(auth, username)
         else:
             error('username/password required: need terminal device.')
         return
 
-    def _add_auth_to_config(self, config_file, auth, username):
+    def _add_auth_to_config(self, auth, username):
         '''Update config file with auth token and (possibly) username.
         '''
-        config = load_json(config_file)
-        if 'username' in config and not config['username']:
-            config['username'] = username
-        config['auth'] = auth
-        save_json(config, config_file, indent="  ")
-        self.config = config
+        config = load_json(self.config[Key.CONFIG_FILE])
+        if Key.USERNAME in config and not config[Key.USERNAME]:
+            config[Key.USERNAME] = username
+        config[Key.AUTH] = auth
+        save_json(config, self.config[Key.CONFIG_FILE], indent="  ")
         return
 
-    def authenticate(self, reauth=False):
+    def authenticate(self):
         '''Authenticate to pCloud endpoint.
 
         If we have a valid auth token, no username/password is
@@ -181,17 +190,52 @@ class PCloud:
         True, login is forced.
 
         '''
-        if not reauth:
-            if 'auth' in self.config:
-                expired =  _expired(self.config['auth']['expires'])
+        if Key.REAUTH not in self.config:
+            if Key.AUTH in self.config:
+                expired =  _expired(self.config[Key.AUTH][Key.EXPIRES])
                 if not expired:
-                    self.auth = self.config['auth']['token']
+                    self.auth = self.config[Key.AUTH][Key.TOKEN]
                     return
                 else:
                     error('auth token expired; re-authentication required.',
                           die=False)
         self._login()
         return
+
+    def merge_command_options(self, aspect_key, aspect_opts):
+        '''Merge options from command line into configuration.
+
+        The core config options on the command line are
+        handled. Additional configuration for an aspect (client
+        program of pcloudapi), that is the aspect key name and the
+        command line option flags, are passed in aspect_key and aspect
+        opts, respectively.
+
+        Return value is a list of the remaining, non-option, command line
+        arguments.
+
+        '''
+        try:
+            opts,args = getopt.getopt(sys.argv[1:],'e:f:ru:v', aspect_opts)
+            for o,v in opts:
+                if o == '-e':
+                    self.config[Key.ENDPOINT] = v
+                elif o =='-f':
+                    self.config[Key.CONFIG_FILE] = v
+                    self.config = read_config(self.config, v, optional=False)
+                elif o == '-r':
+                    self.config[Key.REAUTH] = True
+                elif o == '-u':
+                    self.config[Key.USERNAME] = v
+                elif o == '-v':
+                    self.config[Key.VERBOSE] = True
+                else:
+                    self.config[aspect_key][o[2:]] = \
+                        v if o[2:]+'=' in aspect_opts else True
+        except getopt.GetoptError as err:
+            error(err)
+
+        return args
 
 def _expired(expires):
     expiry = time.mktime(time.strptime(expires))
@@ -253,50 +297,14 @@ def read_config(config, config_file, optional=True):
         if not optional: error(f'config file does not exist: {config_file}')
     return n_config
 
-def merge_command_options(config, aspect_key, aspect_opts):
-    '''Merge options from command line into configuration file.
-
-    The config argument holds the configuration dictionary, either the
-    default, or that read from the configuration file. The core config
-    options on the command line are handled. Additional configuration
-    for an aspect (client program of pcloudapi), that is the aspect
-    key name and the command line option flags, are passed in
-    aspect_key and aspect opts, respectively.
-
-    Return value is a tuple of the merged configuration dictionary and
-    remaining, non-option, command line arguments.
-
-    '''
-    cmd_config = copy.deepcopy(config)
-    try:
-        opts,args = getopt.getopt(sys.argv[1:],'e:f:ru:v', aspect_opts)
-        for o,v in opts:
-            if o == '-e':
-                cmd_config['endpoint'] = v
-            elif o =='-f':
-                cmd_config['config_-ile'] = v
-                config = read_config(config, v, optional=False)
-            elif o == '-u':
-                cmd_config['username'] = v
-            elif o == '-v':
-                cmd_config['verbose'] = True
-            else:
-                cmd_config[aspect_key][o[2:]] = \
-                    v if o[2:]+'=' in aspect_opts else True
-    except getopt.GetoptError as err:
-        error(err)
-
-    return (cmd_config, args)
-
 def _base_config():
     '''Return config dictionary with minimal default config information.
 
     '''
-    config = {'config-file': '~/.config/pcloud.json',
-              'endpoint': 'https://eapi.pcloud.com',
-              'username': '',
-              'verbose': False
-              }
+    config = {Key.CONFIG_FILE: '~/.config/pcloud.json',
+              Key.ENDPOINT: 'https://eapi.pcloud.com',
+              Key.USERNAME: '',
+              Key.VERBOSE: False}
     return config
 
 def main():
