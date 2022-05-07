@@ -14,8 +14,17 @@ For more, see README_token.md
 import pcloudapi
 import sys
 
+class Key():
+    ASPECT = 'token'
+    DELETE = 'delete'
+    LIST = 'list'
+    TOKENS = 'tokens'
+    TOKENID = 'tokenid'
+    EXPIRES = 'expires'
+    DEVICE = 'device'
+
 def delete_token(pcloud, tokens, delete_ids):
-    token_ids = [token['tokenid'] for token in tokens]
+    token_ids = [token[Key.TOKENID] for token in tokens]
     for delete_id in delete_ids:
         if delete_id in token_ids:
             pcloud.delete_token(delete_id)
@@ -31,27 +40,26 @@ def list_tokens(tokens):
     '''
     print('%12s %-26s %s'%('Token-id','Expiry Date','Client'))
     for token in tokens:
-        print(f'{token["tokenid"]:12} {token["expires"][:-5]}'\
-              f' {token["device"][:40]}')
+        print(f'{token[Key.TOKENID]:12} {token[Key.EXPIRES][:-5]}'\
+              f' {token[Key.DEVICE][:40]}')
     return
 
 def main():
     pcloud = pcloudapi.PCloud()
-    aspect_opts = ('delete=', 'list')
-    aspect_key = 'token'
-    pcloud.config[aspect_key] = {}
-    config, args = pcloudapi.merge_command_options(pcloud.config, aspect_key,
-                                                   aspect_opts)
+    aspect_opts = (Key.DELETE+'=', Key.LIST)
+    pcloud.config[Key.ASPECT] = {}
+    args = pcloud.merge_command_options(Key.ASPECT, aspect_opts)
     try:
-        pcloud.authenticate('reauth' in config)
-        tokens = pcloud.list_tokens()['tokens']
+        pcloud.authenticate()
+        tokens = pcloud.list_tokens()[Key.TOKENS]
 
-        if 'list' in config[aspect_key]:
+        if Key.LIST in pcloud.config[Key.ASPECT]:
             list_tokens(tokens)
-        elif 'delete' in config[aspect_key]:
+        elif Key.DELETE in pcloud.config[Key.ASPECT]:
             try:
                 delete_tokenids = \
-                    [int(v) for v in config[aspect_key]['delete'].split(',')]
+                    [int(v) for v in \
+                     pcloud.config[Key.ASPECT][Key.DELETE].split(',')]
             except ValueError as err:
                 pcloudapi.error(f'invalid token-id: {err}')
                 return
