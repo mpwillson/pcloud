@@ -109,6 +109,9 @@ component of the **config-file**. An example follows:
 
 ```
 
+Command line options can be made permanent by editing the appropriate
+values in the **config-file**.
+
 # NOTES
 
 `playlist.py` is written in Python 3. Tested with versions 3.8 and
