@@ -284,8 +284,9 @@ def load_json(filename):
 def read_config(config, config_file, optional=True):
     '''Read JSON-format configuration file.
 
-    Merge into config dict. If optional is True, the config file need
-    not exist. The merged config dict is returned.
+    Merge the contents of config_file (in json format) into config
+    dict. If optional is True, the config file need not exist. The
+    merged config dict is returned.
 
     '''
     n_config = copy.deepcopy(config)
