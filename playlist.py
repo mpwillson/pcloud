@@ -150,7 +150,7 @@ def validate_config(config):
 
 def list_playlists(pcloud):
     playlists = pcloud_playlist_names(pcloud)
-    for name in playlists.keys():
+    for name in sorted(playlists.keys()):
         print(name)
     return
 
