@@ -34,7 +34,7 @@ music collection (by default assumed to be under /Music). To avoid
 this download every time a pCloud playlist is created, the description
 can be cached in a local file (it's in JSON format). This will be out
 of date if new music is uploaded, of course. The cache can be
-refereshed by use of the **--create-cache** option. If the pCloud
+refreshed by use of the **--create-cache** option. If the pCloud
 music collection is small, efficiency gains will likely be too small
 to notice.
 
