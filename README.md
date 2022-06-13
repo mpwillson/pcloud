@@ -15,6 +15,11 @@ They are:
   [README_token.md](https://github.com/mpwillson/pcloud/blob/main/README_token.md)
   file for details.
 
+# REQUIREMENTS
+
+- Requires Python version 3.8 or later.
+- Operates on UNIX platforms (Linux, FreeBSD).
+
 # COMMON OPTIONS
 
 These options are supported by each pcloud utility:

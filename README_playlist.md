@@ -116,9 +116,6 @@ values in the **config-file**.
 
 # NOTES
 
-`playlist.py` is written in Python 3. Tested with versions 3.8 and
-3.9.
-
 pCloud collections consist of a name, a type (1 for playlists) and a
 set of file identifiers (fileids). Fileids can be provided at the time
 of collection creation, or at a later time via the
