@@ -22,6 +22,7 @@ import time
 import copy
 import getopt
 import http
+import platform
 
 class Key():
     CONFIG_FILE = 'config-file'
@@ -75,6 +76,7 @@ class PCloud:
 
         self.config = config
         self.auth = None
+        self.user_agent = {'User-Agent': f'hydrus/{platform.uname().node}'}
         return
 
     def _request(self, action):
@@ -82,7 +84,7 @@ class PCloud:
         payload = None
         try:
             url = f'{self.config[Key.ENDPOINT]}/{action}'
-            req = urllib.request.Request(url, headers={'User-Agent': 'hydrus'})
+            req = urllib.request.Request(url, headers=self.user_agent)
             resp = urllib.request.urlopen(req)
             payload = json.loads(resp.read().decode('utf-8'))
             result = payload['result']
