@@ -243,6 +243,14 @@ def _expired(expires):
     expiry = time.mktime(time.strptime(expires))
     return time.time() > expiry
 
+def _create_private(filename):
+    '''Create filename, read/write access restricted to user.'''
+    old_umask = os.umask(0)
+    f = os.open(filename,os.O_CREAT,0o600)
+    os.close(f)
+    os.umask(old_umask)
+    return
+
 def error(msg, die=True):
     print(f'\n** {sys.argv[0]}: {msg}', file=sys.stderr)
     if die: sys.exit(1)
@@ -269,6 +277,7 @@ def save_json(data, filename, indent=None):
     dirname = os.path.dirname(filename)
     if dirname and not os.path.exists(dirname):
         os.makedirs(dirname)
+    if not os.path.exists(filename): _create_private(filename)
     with open(filename,'w') as f:
         json.dump(data, f, indent=indent)
         f.write('\n')
