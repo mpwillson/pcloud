@@ -48,7 +48,7 @@ def walk(folder, root, fileid):
     '''
     for entry in folder:
         name = entry[Key.NAME]
-        if name.endswith('.mp3'):
+        if name.endswith(('.mp3', '.m4a', '.flac', '.alac')):
             fileid[f'{root}/{name}'] = entry[Key.FILEID]
         if Key.CONTENTS in entry:
             walk(entry[Key.CONTENTS], f'{root}/{name}', fileid)
@@ -65,12 +65,16 @@ def mp3_dict(root_folder):
     return fileid
 
 def read_m3u_file(filename, remove='/rep/music'):
-    '''Return list of mp3 pathnames from m3u filename.  The prefix
-    identified by remove is stripped from each mp3 pathname.
+    '''Return list of mp3/m4a/flac/alac pathnames from m3u filename.
+    The prefix identified by remove is stripped from each mp3 pathname.
     '''
     with open(filename) as f:
         lines = f.readlines()
-    return [line.replace(remove, '').strip()  for line in lines]
+    line = [l.replace(remove, '').strip()  for l in lines]
+    for i in range(len(line)):
+        if line[i][0] != '/' and line[i].count('/')>=1:
+            line[i] = '/'+line[i]
+    return line
 
 def create_playlist(pcloud, name, ids):
     '''Create pCloud playlist.
