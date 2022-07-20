@@ -15,16 +15,19 @@ playlist.py: Convert local .m3u playlists into pCloud playlists.
 # DESCRIPTION
 Converts m3u format playlists held locally into pCloud format playlists.
 
-The big assumption `playlist.py` makes is that the mp3 files on pCloud
+The big assumption `playlist.py` makes is that the music files on pCloud
 and those held locally are a mirrored structure.  If that is not the
 case, `playlist.py` won't work too well.
+
+Music files are those with one of the following suffixes: .mp3, .m4a,
+.flac or .alac.
 
 The pCloud music player doesn't understand m3u playlists (as far as I
 can tell). `playlist.py` uses the contents of local m3u playlists and
 writes them to pCloud as playlist collections. The pCloud playlist is
 named as the local playlist (shorn of any path information). The music
 files listed in the m3u files MUST exist on pCloud, with the same
-directory structure as the local mp3 collection. This is because
+directory structure as the local music collection. This is because
 pCloud identifies files in a playlist collection by a unique number
 (fileid), not pathname. These fileids can only be located if the local
 and pCloud pathnames are identical.
@@ -56,18 +59,18 @@ pcloud common options, Options may be abbreviated to the shortest
 unambiguous string.
 
 `--cache-file cache-file`
-: Reads mp3 file data from **cache-file**. If not specified, mp3 file
+: Reads music file data from **cache-file**. If not specified, music file
   data will be read from the pCloud /Music folder. Using a
   **cache-file** will reduce network traffic for extensive music
   collections. If the **cache-file** does not exist, it will be
-  created by downloading mp3 data from the pCloud **music-folder**.
+  created by downloading music data from the pCloud **music-folder**.
 
 `--chunk-size chunk-size`
 : Sets the number of pCloud fileids to be uploaded to a playlist in
   a single transaction. Default is 100.
 
 `--create-cache`
-: Recreates mp3 file data, read from the pCloud **music-folder**
+: Recreates music file data, read from the pCloud **music-folder**
   folder, into **cache-file**. Use **--create-cache** if the pCloud music
   collection has been updated since the last time the cache was
   created.
@@ -85,8 +88,8 @@ unambiguous string.
   re-created.
 
 `--prefix playlist-prefix`
-: Set the location of the local mp3 files, i.e. the common prefix for
-  mp3 files in m3u playlists. It is assumed that the directory
+: Set the location of the local music files, i.e. the common prefix for
+  music files in m3u playlists. It is assumed that the directory
   hierarchy under **playlist-prefix** is the same as
   **music-folder**. The default is the empty string.
 

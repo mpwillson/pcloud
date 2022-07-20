@@ -68,13 +68,12 @@ def read_m3u_file(filename, remove='/rep/music'):
     '''Return list of mp3/m4a/flac/alac pathnames from m3u filename.
     The prefix identified by remove is stripped from each mp3 pathname.
     '''
+    def make_abs(pathname):
+        return pathname if pathname[0] == '/' else '/' + pathname
+
     with open(filename) as f:
         lines = f.readlines()
-    line = [l.replace(remove, '').strip()  for l in lines]
-    for i in range(len(line)):
-        if line[i][0] != '/' and line[i].count('/')>=1:
-            line[i] = '/'+line[i]
-    return line
+    return [make_abs(line.replace(remove, '').strip())  for line in lines]
 
 def create_playlist(pcloud, name, ids):
     '''Create pCloud playlist.
