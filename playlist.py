@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 '''
 # NAME
-  pc_playlist.py: Convert local .m3u playlists into pCloud playlists.
+  playlist.py: Convert local .m3u playlists into pCloud playlists.
 
 # SYNOPSIS
-  python pc_playlist.py [common_options]
-                        [--cache-file cache-file] [--create-cache]
-                        [--dir playlist-dir]
-                        [--list] [--music-folder music-folder]
-                        [--prefix playlist-prefix] [--chunk-size chunk-size]
-                        [m3u_playlist ...]
+  python playlist.py [common_options]
+                     [--cache-file cache-file] [--create-cache]
+                     [--dir playlist-dir]
+                     [--list] [--music-folder music-folder]
+                     [--prefix playlist-prefix] [--chunk-size chunk-size]
+                     [m3u_playlist ...]
 
   See README_playlist.md for details.
 '''
