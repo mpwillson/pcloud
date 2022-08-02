@@ -7,6 +7,7 @@ playlist.py: Convert local .m3u playlists into pCloud playlists.
                     [--cache-file cache-file] [--create-cache]
                     [--dir playlist_dir]
                     [--list] [--music-folder music-folder]
+                    [--music-types suffix[,suffix] ...]
                     [--prefix playlist-prefix]
                     [--chunk-size chunk-size]
                     [m3u_playlist ...]
@@ -19,9 +20,6 @@ Converts m3u format playlists held locally into pCloud format playlists.
 The big assumption `playlist.py` makes is that the music files on pCloud
 and those held locally are a mirrored structure.  If that is not the
 case, `playlist.py` won't work too well.
-
-Music files are those with one of the following suffixes: .mp3, .m4a,
-.flac or .alac.
 
 The pCloud music player doesn't understand m3u playlists (as far as I
 can tell). `playlist.py` uses the contents of local m3u playlists and
@@ -52,7 +50,8 @@ provided. The username can be set in the configuration file
 password (not echoed). Once the initial authentication takes place,
 the auth token returned by pCloud is stored in the configuration
 file. The token will be used if it exists and has not expired. Further
-uses of `playlist.py` will not require authentication.
+uses of `playlist.py` will not require authentication, until the auth
+token expires.
 
 # OPTIONS
 
@@ -89,6 +88,11 @@ unambiguous string.
   implies **--create-cache**, as the **cache-file** will need to be
   re-created.
 
+`--music-types suffix[,suffix] ...`
+: Set recognised music file suffixes, as a comma separated list.  By
+  default, recognised music files are those with one of the following
+  suffixes: .mp3, .m4a, .flac or .alac.
+
 `--prefix playlist-prefix`
 : Set the location of the local music files, i.e. the common prefix for
   music files in m3u playlists. It is assumed that the directory
@@ -110,6 +114,7 @@ component of the **config-file**. An example follows:
     "cache-file": "~/.cache/pcloud/playlist.cache",
     "chunk-size": 100,
     "music-folder": "/Music",
+    "music-types": [".aac", ".flac"],
     "dir": "/rep/music/playlists",
     "prefix": "/rep/music"
   }

@@ -72,6 +72,10 @@ class PCloud:
             if not aspect_key in config:
                 config[aspect_key] = aspect_dict
                 save_required = True
+            else:
+                # use defaults if not present in config file
+                aspect_dict.update(config[aspect_key])
+                config[aspect_key] = aspect_dict
         if save_required: save_json(config, config_file, indent="  ")
 
         self.config = config

@@ -25,6 +25,7 @@ class Key():
     CACHE_FILE = 'cache-file'
     CHUNK_SIZE = 'chunk-size'
     MUSIC_FOLDER = 'music-folder'
+    MUSIC_TYPES =  'music-types'
     DIR = 'dir'
     PREFIX = 'prefix'
     CREATE_CACHE = 'create-cache'
@@ -38,35 +39,37 @@ class Key():
     ID = 'id'
     PATH = 'path'
 
-def walk(folder, root, fileid):
+def walk(folder, root, fileid, types):
     '''Recursively walk the pCloud directory structure.
 
     folder contains music data structure.  root is current location in
     folder. fileid is a dictionary to be updated with a mapping of mp3
-    file pathname to fileid.
+    file pathname to fileid. Types contains a list of recognised music
+    suffixes.
 
     '''
     for entry in folder:
         name = entry[Key.NAME]
-        if name.endswith(('.mp3', '.m4a', '.flac', '.alac')):
+        if name.endswith(types):
             fileid[f'{root}/{name}'] = entry[Key.FILEID]
         if Key.CONTENTS in entry:
-            walk(entry[Key.CONTENTS], f'{root}/{name}', fileid)
+            walk(entry[Key.CONTENTS], f'{root}/{name}', fileid, types)
     return
 
-def mp3_dict(root_folder):
+def get_music_dict(root_folder, types):
     '''Walks pCloud root Music folder.
 
-    mp3 pathnames are stripped of the root directory (e.g. /Music)
-    Returns dictionary of mp3 files keyed on name, value is fileid.
+    music pathnames (those matching the suffixes in the types list)
+    are stripped of the root directory (e.g. /Music) Returns
+    dictionary of music files keyed on name, value is fileid.
     '''
     fileid = dict()
-    walk(root_folder, '', fileid)
+    walk(root_folder, '', fileid, tuple(types))
     return fileid
 
 def read_m3u_file(filename, remove='/rep/music'):
-    '''Return list of mp3/m4a/flac/alac pathnames from m3u filename.
-    The prefix identified by remove is stripped from each mp3 pathname.
+    '''Return list of music file pathnames from m3u filename.
+    The prefix identified by remove is stripped from each music file pathname.
     '''
     def make_abs(pathname):
         return pathname if pathname[0] == '/' else '/' + pathname
@@ -148,7 +151,9 @@ def validate_config(config):
     if chunk_size <= 0 or chunk_size > 300:
         pcloudapi.error(f'invalid chunk size specified: {chunk_size}')
     playlist[Key.CHUNK_SIZE] = chunk_size
-
+    # convert command option string to list
+    if isinstance(playlist[Key.MUSIC_TYPES], str):
+        playlist[Key.MUSIC_TYPES] =  playlist[Key.MUSIC_TYPES].split(',')
     return
 
 def list_playlists(pcloud):
@@ -159,7 +164,8 @@ def list_playlists(pcloud):
 
 def process_playlists(pcloud, pl_files):
     '''Create pCloud playlist file (collection) for each .m3u file in the
-       list pl_files'''
+       list pl_files.
+    '''
 
     pl_config = pcloud.config[Key.ASPECT]
     cache_file =  os.path.expanduser(
@@ -186,7 +192,8 @@ def process_playlists(pcloud, pl_files):
                       'music collection from pCloud ...')
             folder = pcloud.list_folder(path=music_folder)
     try:
-        fileids = mp3_dict(folder[Key.METADATA][Key.CONTENTS])
+        fileids = get_music_dict(folder[Key.METADATA][Key.CONTENTS],
+                                 pl_config[Key.MUSIC_TYPES])
     except KeyError as err:
         pcloudapi.error(f'unable to decode music_folder; corrupt cache?')
 
@@ -199,6 +206,7 @@ def main():
         Key.CACHE_FILE: '',
         Key.CHUNK_SIZE: 100,
         Key.MUSIC_FOLDER: '/Music',
+        Key.MUSIC_TYPES: ['.mp3', '.m4a', '.flac', '.alac'],
         Key.DIR: '',
         Key.PREFIX: ''}
 
