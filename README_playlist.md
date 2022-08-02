@@ -13,6 +13,7 @@ playlist.py: Convert local .m3u playlists into pCloud playlists.
 ```
 
 # DESCRIPTION
+
 Converts m3u format playlists held locally into pCloud format playlists.
 
 The big assumption `playlist.py` makes is that the music files on pCloud
@@ -47,13 +48,14 @@ upload of a new copy.
 `playlist.py` will logon to pCloud to upload the playlist
 collections. For the first connection, a username and password must be
 provided. The username can be set in the configuration file
-(`~/.config/pcloud.json`}. However, the program will prompt for the
+(`~/.config/pcloud.json`). However, the program will prompt for the
 password (not echoed). Once the initial authentication takes place,
 the auth token returned by pCloud is stored in the configuration
 file. The token will be used if it exists and has not expired. Further
 uses of `playlist.py` will not require authentication.
 
 # OPTIONS
+
 These are the options supported by `playlist.py` in addition to the
 pcloud common options, Options may be abbreviated to the shortest
 unambiguous string.
@@ -94,6 +96,7 @@ unambiguous string.
   **music-folder**. The default is the empty string.
 
 # CONFIGURATION
+
 The default configuration file is `~/.config/pcloud.json`.
 `playlist.py` holds specific configuration details in the "playlist"
 component of the **config-file**. An example follows:
