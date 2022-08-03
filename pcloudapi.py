@@ -23,6 +23,7 @@ import copy
 import getopt
 import http
 import platform
+import socket
 
 class Key():
     CONFIG_FILE = 'config-file'
@@ -89,7 +90,8 @@ class PCloud:
         try:
             url = f'{self.config[Key.ENDPOINT]}/{action}'
             req = urllib.request.Request(url, headers=self.user_agent)
-            resp = urllib.request.urlopen(req)
+            # timeout=2 times out after ~ 10s
+            resp = urllib.request.urlopen(req, timeout=2)
             payload = json.loads(resp.read().decode('utf-8'))
             result = payload['result']
             if result != 0:
@@ -97,7 +99,10 @@ class PCloud:
         except urllib.error.HTTPError as err:
             raise PCloudException(url, err.code, 'http request failed')
         except urllib.error.URLError as err:
-            raise PCloudException(url, -1, err)
+            if isinstance(err.reason, socket.timeout):
+                raise PCloudException(url, -1, 'endpoint request timed out')
+            else:
+                raise PCloudException(url, -1, err)
         except json.decoder.JSONDecodeError as err:
             raise PCloudException(url, -1, 'invalid response from endpoint')
         except UnicodeError as err:
