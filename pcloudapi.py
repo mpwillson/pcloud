@@ -34,6 +34,7 @@ class Key():
     AUTH = 'auth'
     TOKEN = 'token'
     EXPIRES = 'expires'
+    TIMEOUT = 'timeout'
 
 class PCloudException(Exception):
     '''Exception class for pCloud class. '''
@@ -90,8 +91,7 @@ class PCloud:
         try:
             url = f'{self.config[Key.ENDPOINT]}/{action}'
             req = urllib.request.Request(url, headers=self.user_agent)
-            # timeout=2 times out after ~ 10s
-            resp = urllib.request.urlopen(req, timeout=2)
+            resp = urllib.request.urlopen(req, timeout=self.config[Key.TIMEOUT])
             payload = json.loads(resp.read().decode('utf-8'))
             result = payload['result']
             if result != 0:
@@ -227,7 +227,7 @@ class PCloud:
 
         '''
         try:
-            opts,args = getopt.getopt(sys.argv[1:],'e:f:ru:v', aspect_opts)
+            opts,args = getopt.getopt(sys.argv[1:],'e:f:rt:u:v', aspect_opts)
             for o,v in opts:
                 if o == '-e':
                     self.config[Key.ENDPOINT] = v
@@ -236,6 +236,10 @@ class PCloud:
                     self.config = read_config(self.config, v, optional=False)
                 elif o == '-r':
                     self.config[Key.REAUTH] = True
+                elif o == '-t':
+                    self.config[Key.TIMEOUT] = int(v)
+                    if self.config[Key.TIMEOUT] <= 0:
+                        error('invalid timeout specified.')
                 elif o == '-u':
                     self.config[Key.USERNAME] = v
                 elif o == '-v':
@@ -324,6 +328,7 @@ def _base_config():
     '''
     config = {Key.CONFIG_FILE: '~/.config/pcloud.json',
               Key.ENDPOINT: 'https://eapi.pcloud.com',
+              Key.TIMEOUT: 2,
               Key.USERNAME: '',
               Key.VERBOSE: False}
     return config

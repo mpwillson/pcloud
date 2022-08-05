@@ -41,6 +41,10 @@ These options are supported by each pcloud utility:
   be requested. If a username is not present in the **config-file**,
   the one entered will be saved.
 
+`-t timeout`
+: Set timeout for connections to the pCloud endpoint. Default value is 2,
+  which equates to approximately 10 seconds.
+
 `-u username`
 : Set pCloud username. If not set, or the value is empty, a prompt
   will be issued for the username when it is required. The username
@@ -57,6 +61,7 @@ example with the core configuration options:
 {
   "config-file": "~/.config/pcloud.json",
   "endpoint": "https://eapi.pcloud.com",
+  "timeout": 2,
   "username": "user@example.com",
   "verbose": false
 }
