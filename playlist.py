@@ -8,6 +8,7 @@
                      [--cache-file cache-file] [--create-cache]
                      [--dir playlist-dir]
                      [--list] [--music-folder music-folder]
+                     [--music-types suffix[,suffix] ...]
                      [--prefix playlist-prefix] [--chunk-size chunk-size]
                      [m3u_playlist ...]
 
