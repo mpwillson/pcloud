@@ -5,7 +5,7 @@ NAME
 
 SYNOPSIS
   python token.py [common_options]
-                  {[--delete token_id[,token_id] ...] | [--list] }
+                  {[--delete token_id[,token_id ...]] | [--list] }
 
 For more, see README_token.md
 
