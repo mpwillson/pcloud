@@ -7,7 +7,7 @@ playlist.py: Convert local .m3u playlists into pCloud playlists.
                     [--cache-file cache-file] [--create-cache]
                     [--dir playlist_dir]
                     [--list] [--music-folder music-folder]
-                    [--music-types suffix[,suffix] ...]
+                    [--music-types suffix[,suffix ...]]
                     [--prefix playlist-prefix]
                     [--chunk-size chunk-size]
                     [m3u_playlist ...]
@@ -88,7 +88,7 @@ unambiguous string.
   implies **--create-cache**, as the **cache-file** will need to be
   re-created.
 
-`--music-types suffix[,suffix] ...`
+`--music-types suffix[,suffix ...]`
 : Set recognised music file suffixes, as a comma separated list.  By
   default, recognised music files are those with one of the following
   suffixes: .mp3, .m4a, .flac or .alac.

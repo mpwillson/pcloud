@@ -4,7 +4,7 @@ token.py: List and delete pCloud authentication tokens
 # SYNOPSIS
 ```
 python token.py   [common_options]
-                  [ {--delete token-id[,token-id] ... | --list} ]
+                  [ {--delete token-id[,token-id ...] | --list} ]
 ```
 
 # DESCRIPTION
@@ -13,7 +13,7 @@ held by the pCloud server. `token.py` can also delete these tokens,
 as identified by their token-id.
 
 # OPTIONS
-```--delete token-id[,token-id] ...```
+```--delete token-id[,token-id ...]```
 : Deletes tokens specified by a list of one or more **token_ids**.
 
 ```--list```
