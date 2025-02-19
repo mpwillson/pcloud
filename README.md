@@ -26,6 +26,7 @@ These options are supported by each pcloud utility:
 
 `-e endpoint`
 : Set endpoint for pCloud API.  Default is `https://eapi.pcloud.com`
+  for Europe. See below.
 
 `-f config-file`
 : Set name of configuration file. The default is
@@ -67,6 +68,12 @@ example with the core configuration options:
 }
 
 ```
+N.B. pCloud has two datacenters; one in United States and one in Europe.
+
+As a consequence API calls have to be made to the correct API host
+name depending were the user has been registered – **api.pcloud.com for
+United States** or **eapi.pcloud.com for Europe**.
+
 Authentication token details will be added to the configuration
 file once a successful login is effected. Username and password will
 not be requred again, until the authentication token expires (one
