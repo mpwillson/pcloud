@@ -208,8 +208,8 @@ class PCloud:
                     self.auth = self.config[Key.AUTH][Key.TOKEN]
                     return
                 else:
-                    error('auth token expired; re-authentication required.',
-                          die=False)
+                    error(f'auth token expired; re-authentication required '\
+                          f'for {self.config[Key.USERNAME]}.', die=False)
         self._login()
         return
 
