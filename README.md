@@ -42,6 +42,10 @@ These options are supported by each pcloud utility:
   be requested. If a username is not present in the **config-file**,
   the one entered will be saved.
 
+`-s`
+: Save options specified on command line to the configuration file
+  **config-file**. The options include those supported by a utility.
+
 `-t timeout`
 : Set timeout for connections to the pCloud endpoint. Default value is 2,
   which equates to approximately 10 seconds.

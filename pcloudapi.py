@@ -226,8 +226,9 @@ class PCloud:
         arguments.
 
         '''
+        save_required = False
         try:
-            opts,args = getopt.getopt(sys.argv[1:],'e:f:rt:u:v', aspect_opts)
+            opts,args = getopt.getopt(sys.argv[1:],'e:f:rst:u:v', aspect_opts)
             for o,v in opts:
                 if o == '-e':
                     self.config[Key.ENDPOINT] = v
@@ -236,6 +237,8 @@ class PCloud:
                     self.config = read_config(self.config, v, optional=False)
                 elif o == '-r':
                     self.config[Key.REAUTH] = True
+                elif o == '-s':
+                    save_required = True
                 elif o == '-t':
                     self.config[Key.TIMEOUT] = int(v)
                     if self.config[Key.TIMEOUT] <= 0:
@@ -250,7 +253,21 @@ class PCloud:
         except getopt.GetoptError as err:
             error(err)
 
+        if save_required:
+            _save_options(self.config, aspect_key, aspect_opts)
+
         return args
+
+def _save_options(config, aspect_key, aspect_opts):
+    '''Remove transient aspect options prior to saving configuration
+       to file.
+    '''
+    save_config = copy.deepcopy(config)
+    for opt in aspect_opts:
+        if (not "=" in opt) and opt in save_config[aspect_key]:
+            del save_config[aspect_key][opt]
+    save_json(save_config, save_config[Key.CONFIG_FILE], indent = "  ")
+    return
 
 def _expired(expires):
     expiry = time.mktime(time.strptime(expires))
