@@ -233,8 +233,8 @@ class PCloud:
                 if o == '-e':
                     self.config[Key.ENDPOINT] = v
                 elif o =='-f':
-                    self.config[Key.CONFIG_FILE] = v
                     self.config = read_config(self.config, v, optional=False)
+                    self.config[Key.CONFIG_FILE] = v
                 elif o == '-r':
                     self.config[Key.REAUTH] = True
                 elif o == '-s':
