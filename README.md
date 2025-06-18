@@ -72,12 +72,6 @@ example with the core configuration options:
 }
 
 ```
-N.B. pCloud has two datacenters; one in United States and one in Europe.
-
-As a consequence API calls have to be made to the correct API host
-name depending were the user has been registered – **api.pcloud.com for
-United States** or **eapi.pcloud.com for Europe**.
-
 Authentication token details will be added to the configuration
 file once a successful login is effected. Username and password will
 not be requred again, until the authentication token expires (one
@@ -101,3 +95,12 @@ configuration options will be written to the file.
 
 Utility programs may add their own specific configuration elements to
 the **config-file**. See their README files for details.
+
+## Endpoint Setting
+
+pCloud has two datacenters; one in United States and one in Europe.
+
+As a consequence API calls must be made to the correct API endpoint
+name, which depends on where the user has been registered. If the United
+States, use **https://api.pcloud.com**. For Europe, use
+**https://eapi.pcloud.com**.
