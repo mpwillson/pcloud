@@ -24,22 +24,30 @@ import getopt
 import http
 import platform
 import socket
+import hashlib
+import webbrowser
 
 class Key():
+    AUTH = 'auth'
+    CLIENT_ID = 'client-id'
     CONFIG_FILE = 'config-file'
     ENDPOINT = 'endpoint'
+    EXPIRES = 'expires'
+    REAUTH = 'reauth'
+    TIMEOUT = 'timeout'
+    TOKEN = 'access-token'
     USERNAME = 'username'
     VERBOSE = 'verbose'
-    REAUTH = 'reauth'
-    AUTH = 'auth'
-    TOKEN = 'token'
-    EXPIRES = 'expires'
-    TIMEOUT = 'timeout'
 
 class PCloudException(Exception):
     '''Exception class for pCloud class. '''
     def __init__(self, url, code, msg):
-        if (l := url.rfind('password')) > 0: url = url[:l]+'*password elided*'
+        if (i := url.find('password=')) >= 0:
+            j = url.find('&', i)
+            if j < 0:
+                url = url[:i]+'*password_elided*'
+            else:
+                url = url[:i]+'*password_elided*'+url[j:]
         self.url = url
         self.code = code
         self.msg = msg
@@ -63,8 +71,8 @@ class PCloud:
         '''
         save_required = False
         config = _base_config()
-        config_file = os.path.expanduser(os.path.expandvars(
-            config[Key.CONFIG_FILE]))
+        config_file = \
+            os.path.expanduser(os.path.expandvars(config[Key.CONFIG_FILE]))
         if os.path.exists(config_file):
             config = read_config(config, config_file)
         else:
@@ -82,17 +90,27 @@ class PCloud:
 
         self.config = config
         self.auth = None
-        self.user_agent = {'User-Agent': f'hydrus/{platform.uname().node}'}
+        self.headers = {'User-Agent': f'hydrus/{platform.uname().node}'}
+#                        'Authorization': f'Bearer {self.config[Key.TOKEN]}' }
         return
 
-    def _request(self, action):
+    def _request(self, action, endpoint=''):
         result = 0
         payload = None
+        #parts = action.split('?')
         try:
-            url = f'{self.config[Key.ENDPOINT]}/{action}'
-            req = urllib.request.Request(url, headers=self.user_agent)
+            if endpoint == '':
+                url = f'{self.config[Key.ENDPOINT]}/{action}'
+                #url = f'{self.config[Key.ENDPOINT]}/{parts[0]}'
+            else:
+                url = f'{endpoint}/{action}'
+                #url = f'{endpoint}/{parts[0]}'
+            print(url)
+            req = urllib.request.Request(url, headers=self.headers)
+#                                         data=parts[1].encode())
             resp = urllib.request.urlopen(req, timeout=self.config[Key.TIMEOUT])
-            payload = json.loads(resp.read().decode('utf-8'))
+            resp_text = resp.read().decode('utf-8')
+            payload = json.loads(resp_text)
             result = payload['result']
             if result != 0:
                 raise PCloudException(url, result, payload['error'])
@@ -112,31 +130,36 @@ class PCloud:
             raise PCloudException(url, -1, err)
         return payload
 
-    def userinfo(self, username, password):
-        request = f'userinfo?getauth=1&logout=1&username={username}&'\
+    def userinfo(self, username, password, code):
+        request = f'userinfo?code={code}&'\
+            f'logout=1&username={username}&'\
             f'password={password}'
         payload = self._request(request)
-        if payload: self.auth = payload[Key.AUTH]
+        #if payload: self.auth = payload[Key.AUTH]
         return payload
 
     def collection_list(self, type=1):
-        request = f'collection_list?auth={self.auth}&type={type}'
+        request = f'collection_list?'\
+            f'username={self.config[Key.USERNAME]}&'\
+            f'passworddigest={self.passworddigest}&'\
+            f'access_token={self.auth}&type={type}'
         return self._request(request)
 
     def collection_delete(self, coll_id):
-        request = f'collection_delete?auth={self.auth}&collectionid='\
+        request = f'collection_delete?access_token={self.auth}&collectionid='\
             f'{coll_id}'
         return self._request(request)
 
     def collection_create(self, name, ids):
-        request = f'collection_create?auth={self.auth}&name={name}&fileids='
+        request = f'collection_create?access_token={self.auth}&name={name}&'\
+            'fileids='
         for id in ids:
             request = request + f'{id},'
         request = request[:-1]
         return self._request(request)
 
     def collection_linkfiles(self, coll_id, file_ids):
-        request = f'collection_linkfiles?auth={self.auth}&'\
+        request = f'collection_linkfiles?access_token={self.auth}&'\
             f'collectionid={coll_id}&fileids='
         for id in file_ids:
             request = request + f'{id},'
@@ -144,52 +167,85 @@ class PCloud:
         return self._request(request)
 
     def list_folder(self, path='/', recursive=1):
-        request = f'listfolder?auth={self.auth}&path={path}&'\
+        request = f'listfolder?access_token={self.auth}&path={path}&'\
             f'recursive={recursive}'
         return self._request(request)
 
     def list_tokens(self):
-        request = f'listtokens?auth={self.auth}'
+        request = f'listtokens?access_token={self.auth}'
         return self._request(request)
 
     def delete_token(self, tokenid):
-        request = f'deletetoken?auth={self.auth}&tokenid={tokenid}'
+        request = f'deletetoken?access_token={self.auth}&tokenid={tokenid}'
         return self._request(request)
 
+    def oauth2_token(self, code):
+        request = f'pcloud_auth?client_id={self.config[Key.CLIENT_ID]}&'\
+            f'code={code}&hostname={self.config[Key.ENDPOINT]}'
+        return self._request(request, endpoint='https://hydrus.org.uk')
+
+    def getdigest(self):
+        request = 'getdigest'
+        return self._request(request)
+
+    def userinfo_digest(self, username, password_digest, digest):
+        request = f'userinfo?username={username}&'\
+            f'passworddigest={password_digest}&'\
+            f'access_token={self.auth}&getauth=1'
+#f'digest={digest}&
+        payload = self._request(request)
+        print(payload)
+        if Key.AUTH in payload: self.auth = payload[Key.AUTH]
+        return payload
+
     def _login(self):
-        '''Handles login to pCloud.
+        '''Handles OAUTH login to pCloud. '''
 
-        A username (if not already provided) and password are
-        requested to invoke the userinfo call. The resulting auth
-        token is saved in an instance variable. It is also saved in
-        the configuration dict and configuration file, along with the
-        computed auth token expiry.
-
-        '''
         if sys.stdin.isatty():
+            if self.auth == '':
+                url = 'https://my.pcloud.com/oauth2/authorize?'\
+                    f'client_id={self.config[Key.CLIENT_ID]}&'\
+                    'force_reapprove=1&'\
+                    'response_type=code'
+                webbrowser.open(url)
+                code = input('Enter code displayed on pCloud web page: ').\
+                    strip()
+                if code == '': error("missing authentication code.")
+                payload = self.oauth2_token(code)
+                print(payload)
+                token = payload['access_token']
+                self._add_auth_to_config(token)
+
+            # test digest
             if self.config[Key.USERNAME]:
                 username = self.config[Key.USERNAME]
             else:
                 username = input('Enter pCloud username: ')
             password = getpass.getpass('Enter pCloud password: ')
-            payload = self.userinfo(username, password)
-            self.auth = payload[Key.AUTH]
-            # pCloud token expires at (now + 31536000 seconds i.e. 1 year)
-            auth = {Key.TOKEN: payload[Key.AUTH],
-                    Key.EXPIRES: time.asctime(time.localtime(
-                        time.time() + 31536000))}
-            self._add_auth_to_config(auth, username)
+            payload = self.getdigest()
+            print(payload)
+            self.digest = payload['digest']
+            self.passworddigest = hashlib.sha1(password.encode()+\
+                                          username.encode()+\
+                                          self.digest.encode()).hexdigest()
+            print(self.passworddigest)
+            payload = self.userinfo_digest(username, \
+                                           self.passworddigest,
+                                           self.digest)
+            print(payload)
+            if Key.AUTH in payload:
+                print('auth returned')
+            else:
+                print('no auth token')
         else:
-            error('username/password required: need terminal device.')
+            error('authentication needs terminal device.')
         return
 
-    def _add_auth_to_config(self, auth, username):
-        '''Update config file with auth token and (possibly) username.
+    def _add_auth_to_config(self, token):
+        '''Update config file with auth token
         '''
         config = load_json(self.config[Key.CONFIG_FILE])
-        if Key.USERNAME in config and not config[Key.USERNAME]:
-            config[Key.USERNAME] = username
-        config[Key.AUTH] = auth
+        config[Key.TOKEN] = self.auth = token
         save_json(config, self.config[Key.CONFIG_FILE], indent="  ")
         return
 
@@ -201,15 +257,9 @@ class PCloud:
         True, login is forced.
 
         '''
-        if Key.REAUTH not in self.config:
-            if Key.AUTH in self.config:
-                expired =  _expired(self.config[Key.AUTH][Key.EXPIRES])
-                if not expired:
-                    self.auth = self.config[Key.AUTH][Key.TOKEN]
-                    return
-                else:
-                    error(f'auth token expired; re-authentication required '\
-                          f'for {self.config[Key.USERNAME]}.', die=False)
+
+        self.auth = '' if Key.REAUTH in self.config else \
+            self.config.get(Key.TOKEN, '')
         self._login()
         return
 
@@ -346,7 +396,8 @@ def _base_config():
     config = {Key.CONFIG_FILE: '~/.config/pcloud.json',
               Key.ENDPOINT: 'https://eapi.pcloud.com',
               Key.TIMEOUT: 2,
-              Key.USERNAME: '',
+              Key.TOKEN: '',
+              Key.CLIENT_ID: 'ICeuMkN0prk',
               Key.VERBOSE: False}
     return config
 
