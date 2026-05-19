@@ -13,26 +13,23 @@ def api_connect(msg):
             print(ssock.version())
             nsent = ssock.send(msg)
             print(f'Bytes sent: {nsent}')
-            while True:
-                data = ssock.recv(2048)
-                print(f'Received len: {len(data)}')
-                if ( len(data) < 1 ) :
-                    break
-                print(data)
+            data = ssock.recv(2048)
+            print(f'Received len: {len(data)}')
+            print(data)
     return
 
-def encode_int(value, size):
-    bval = value.to_bytes(size)
+def ei(value, size):
+    bval = value.to_bytes(size, byteorder='little')
     return bval
 
-def encode(method, data={}):
+def encode(method, params = {}, data = None):
     method_len = len(method)
     method_name = method.encode()
-    params = bytearray()
-    #method_len |= (1 << 7) # always parameters (maybe of zero length)
-    nparams = len(data)
-    if data:
-        for k,v in data.items():
+    bparams = bytearray()
+    if data: method_len |= (1 << 7)
+    nparams = len(params)
+    if params:
+        for k,v in params.items():
             len_param_name = len(k)
             code = 0
             match type(v):
@@ -42,25 +39,27 @@ def encode(method, data={}):
                     code = 1
                 case __builtins__.bool:
                     code = 2
-            param_intro = (code << 6) | len_param_name
+            param_intro = ei((code << 6) | len_param_name, 1)
             match code:
                 case 0:
-                    params = params+param_intro.to_bytes()+\
-                        k.encode()+len(v).to_bytes(4)+\
-                        v.encode()
+                    bparams = bparams + param_intro + \
+                        k.encode() + ei(len(v), 4) + v.encode()
                 case 1:
-                    params = params+param_intro.to_bytes()+k.encode()+\
-                        v.to_bytes(8)
+                    bparams = bparams + param_intro + k.encode() + ei(v, 8)
                 case 2:
-                    params = params+param_intro.to_bytes()+k.encode()+\
-                        (1 if v else 0).to_bytes()
+                    bparams = bparams + param_intro + k.encode() + \
+                        ei(1 if v else 0, 1)
 
-    # 1 byte for method length + 8 bytes for parameter length
-    msg_len = len(method_name) + len(params) + 2
-    return msg_len.to_bytes(2)+method_len.to_bytes(1)+method_name+\
-        nparams.to_bytes()+params
-    #return msg_len.to_bytes(2)+method_len.to_bytes(1)+len(params).to_bytes(8)+\
-     #   method_name+nparams.to_bytes()+params
+    # add 1 byte for method length and 1 byte for param count + optional
+    # data length of 8 bytes
+    msg_len = ei(len(method_name) + len(bparams) + 2 + \
+                 (8 if data else 0), 2)
+    if data:
+        return msg_len + ei(method_len, 1) + ei(len(data), 8) + method_name + \
+            ei(nparams, 1) + bparams + data
+    else:
+        return msg_len + ei(method_len,1) + method_name + ei(nparams, 1) + \
+            bparams
 
 def send_command():
     return
@@ -70,9 +69,20 @@ if __name__ == "__main__":
     #print(encode('list', {'test': 'value'}))
     #print(encode('list_collection', {'type': 1}))
 
+    # this api call will fail; pCloud don't allow use of access_token with
+    # the collection_list method.
     params = {'type': 1, #}
-              'access_token': 'wSm5ZICeuMkN0prkZJB3W5kZ18HpdQDx6fzDzpdaky0rk0511ywV'}
+              'access_token':
+              'wSm5ZICeuMkN0prkZJB3W5kZ18HpdQDx6fzDzpdaky0rk0511ywV'}
     msg = encode('collection_list', params)
-    print(msg)
-    print(f'len msg: {len(msg)}')
+
+    # this api call is successful; access_token auth works with
+    # uploadfile method
+    params1 = {'filename': 'test',
+              'folderid': 0,
+              'access_token':
+              'wSm5ZICeuMkN0prkZJB3W5kZ18HpdQDx6fzDzpdaky0rk0511ywV'}
+    msg = encode('uploadfile', params1, b'File Contents\n')
+    #print(msg)
+    #print(f'len msg: {len(msg)}')
     api_connect(msg)
