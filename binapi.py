@@ -173,7 +173,7 @@ def close():
     ssock = sock = None
     return
 
-def send_request(method, params = {}, data = None):
+def send_request(method, params = {}, data = b''):
     global sock, ssock
     response = None
     if ssock:
