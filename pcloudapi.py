@@ -26,6 +26,7 @@ import platform
 import socket
 import hashlib
 import webbrowser
+import binapi
 
 class Key():
     AUTH = 'auth'
@@ -38,6 +39,7 @@ class Key():
     TOKEN = 'access-token'
     USERNAME = 'username'
     VERBOSE = 'verbose'
+    BINARY_API_PORT = 'binary-api-port'
 
 class PCloudException(Exception):
     '''Exception class for pCloud class. '''
@@ -89,25 +91,19 @@ class PCloud:
         if save_required: save_json(config, config_file, indent="  ")
 
         self.config = config
-        self.auth = None
+        self.auth = self.config[Key.TOKEN]
         self.headers = {'User-Agent': f'hydrus/{platform.uname().node}'}
-#                        'Authorization': f'Bearer {self.config[Key.TOKEN]}' }
         return
 
     def _request(self, action, endpoint=''):
         result = 0
         payload = None
-        #parts = action.split('?')
         try:
             if endpoint == '':
                 url = f'{self.config[Key.ENDPOINT]}/{action}'
-                #url = f'{self.config[Key.ENDPOINT]}/{parts[0]}'
             else:
                 url = f'{endpoint}/{action}'
-                #url = f'{endpoint}/{parts[0]}'
-            print(url)
             req = urllib.request.Request(url, headers=self.headers)
-#                                         data=parts[1].encode())
             resp = urllib.request.urlopen(req, timeout=self.config[Key.TIMEOUT])
             resp_text = resp.read().decode('utf-8')
             payload = json.loads(resp_text)
@@ -118,16 +114,16 @@ class PCloud:
             raise PCloudException(url, err.code, 'http request failed')
         except urllib.error.URLError as err:
             if isinstance(err.reason, socket.timeout):
-                raise PCloudException(url, -1, 'endpoint request timed out')
+                raise PCloudException(url, 10, 'endpoint request timed out')
             else:
-                raise PCloudException(url, -1, err)
+                raise PCloudException(url, 11, err)
         except json.decoder.JSONDecodeError as err:
-            raise PCloudException(url, -1, 'invalid response from endpoint')
+            raise PCloudException(url, 12, 'invalid response from endpoint')
         except UnicodeError as err:
-            raise PCloudException(url, -1, err)
+            raise PCloudException(url, 13, err)
         except http.client.RemoteDisconnected as err:
             # if URL string too long?
-            raise PCloudException(url, -1, err)
+            raise PCloudException(url, 14, err)
         return payload
 
     def userinfo(self, username, password, code):
@@ -135,13 +131,10 @@ class PCloud:
             f'logout=1&username={username}&'\
             f'password={password}'
         payload = self._request(request)
-        #if payload: self.auth = payload[Key.AUTH]
         return payload
 
     def collection_list(self, type=1):
         request = f'collection_list?'\
-            f'username={self.config[Key.USERNAME]}&'\
-            f'passworddigest={self.passworddigest}&'\
             f'access_token={self.auth}&type={type}'
         return self._request(request)
 
@@ -189,54 +182,44 @@ class PCloud:
         return self._request(request)
 
     def userinfo_digest(self, username, password_digest, digest):
-        request = f'userinfo?username={username}&'\
-            f'passworddigest={password_digest}&'\
-            f'access_token={self.auth}&getauth=1'
-#f'digest={digest}&
+        request = f'userinfo?username={username}&' \
+            f'passworddigest={password_digest}'
         payload = self._request(request)
-        print(payload)
-        if Key.AUTH in payload: self.auth = payload[Key.AUTH]
         return payload
+
+    def binary_request(self, method, params = {}, data = b''):
+        if data and not isinstance(data, bytes):
+            data = data.encode()
+        close_sock = False
+        if not binapi.ssock:
+            close_sock = True
+            try:
+                binapi.open(self.config[Key.ENDPOINT].replace('https://',''),
+                            self.config[Key.BINARY_API_PORT])
+            except Exception as e:
+                raise PCloudException(self.config[Key.ENDPOINT], 16,
+                                      'unable to open binary api endpoint')
+        params['access_token'] = self.auth
+        response = binapi.send_request(method, params, data)
+        if close_sock: binapi.close()
+        return response
 
     def _login(self):
         '''Handles OAUTH login to pCloud. '''
 
         if sys.stdin.isatty():
             if self.auth == '':
-                url = 'https://my.pcloud.com/oauth2/authorize?'\
-                    f'client_id={self.config[Key.CLIENT_ID]}&'\
-                    'force_reapprove=1&'\
+                url = 'https://my.pcloud.com/oauth2/authorize?' \
+                    f'client_id={self.config[Key.CLIENT_ID]}&' \
+                    'force_reapprove=1&' \
                     'response_type=code'
                 webbrowser.open(url)
                 code = input('Enter code displayed on pCloud web page: ').\
                     strip()
-                if code == '': error("missing authentication code.")
+                if code == '': error('missing authentication code.')
                 payload = self.oauth2_token(code)
-                print(payload)
                 token = payload['access_token']
                 self._add_auth_to_config(token)
-
-            # test digest
-            if self.config[Key.USERNAME]:
-                username = self.config[Key.USERNAME]
-            else:
-                username = input('Enter pCloud username: ')
-            password = getpass.getpass('Enter pCloud password: ')
-            payload = self.getdigest()
-            print(payload)
-            self.digest = payload['digest']
-            self.passworddigest = hashlib.sha1(password.encode()+\
-                                          username.encode()+\
-                                          self.digest.encode()).hexdigest()
-            print(self.passworddigest)
-            payload = self.userinfo_digest(username, \
-                                           self.passworddigest,
-                                           self.digest)
-            print(payload)
-            if Key.AUTH in payload:
-                print('auth returned')
-            else:
-                print('no auth token')
         else:
             error('authentication needs terminal device.')
         return
@@ -347,6 +330,13 @@ def chunked(array, chunk_size):
     else:
         return (array[:chunk_size], array[chunk_size:])
 
+def get_url(url):
+    'Return contents of url.'
+    req = urllib.request.Request(url)
+    resp = urllib.request.urlopen(req)
+    resp_text = resp.read()#.decode('utf-8')
+    return resp_text
+
 def save_json(data, filename, indent=None):
     '''Write data to filename in JSON format.
 
@@ -395,6 +385,7 @@ def _base_config():
     '''
     config = {Key.CONFIG_FILE: '~/.config/pcloud.json',
               Key.ENDPOINT: 'https://eapi.pcloud.com',
+              Key.BINARY_API_PORT: 8399,
               Key.TIMEOUT: 2,
               Key.TOKEN: '',
               Key.CLIENT_ID: 'ICeuMkN0prk',
