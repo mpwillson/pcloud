@@ -114,16 +114,16 @@ class PCloud:
             raise PCloudException(url, err.code, 'http request failed')
         except urllib.error.URLError as err:
             if isinstance(err.reason, socket.timeout):
-                raise PCloudException(url, 10, 'endpoint request timed out')
+                raise PCloudException(url, 9010 'endpoint request timed out')
             else:
-                raise PCloudException(url, 11, err)
+                raise PCloudException(url, 9011 err)
         except json.decoder.JSONDecodeError as err:
-            raise PCloudException(url, 12, 'invalid response from endpoint')
+            raise PCloudException(url, 9012 'invalid response from endpoint')
         except UnicodeError as err:
-            raise PCloudException(url, 13, err)
+            raise PCloudException(url, 9013 err)
         except http.client.RemoteDisconnected as err:
             # if URL string too long?
-            raise PCloudException(url, 14, err)
+            raise PCloudException(url, 9014 err)
         return payload
 
     def userinfo(self, username, password, code):
@@ -194,14 +194,15 @@ class PCloud:
         if not binapi.ssock:
             close_sock = True
             try:
-                binapi.open(self.config[Key.ENDPOINT].replace('https://',''),
-                            self.config[Key.BINARY_API_PORT])
+                hostname = self.config[Key.ENDPOINT].replace('https://','')
+                binapi.open_socket(hostname,
+                                   self.config[Key.BINARY_API_PORT])
             except Exception as e:
-                raise PCloudException(self.config[Key.ENDPOINT], 16,
+                raise PCloudException(self.config[Key.ENDPOINT], 9016
                                       'unable to open binary api endpoint')
         params['access_token'] = self.auth
         response = binapi.send_request(method, params, data)
-        if close_sock: binapi.close()
+        if close_sock: binapi.close_socket()
         return response
 
     def _login(self):
