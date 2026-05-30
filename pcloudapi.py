@@ -315,7 +315,7 @@ def _create_private(filename):
     return
 
 def error(msg, die=True):
-    print(f'\n** {sys.argv[0]}: {msg}', file=sys.stderr)
+    print(f'{sys.argv[0]}: {msg}', file=sys.stderr)
     if die: sys.exit(1)
     return
 
