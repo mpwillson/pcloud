@@ -70,9 +70,11 @@ def di(b):
     return int.from_bytes(b, 'little')
 
 def is_str(code):
+    'Is pCloud string?'
     return (code >= 0 and code <= 7) or (code >= 100 and code <= 199)
 
 def is_int(code):
+    'Is pCloud int?'
     return (code >= 8 and code <= 15) or (code >= 200 and code <= 219)
 
 def decode_int(msg):
@@ -182,7 +184,7 @@ def send_request(method, params = {}, data = b''):
         byte_length = di(ssock.recv(4))
         response = ssock.recv(byte_length)
         if len(response) == 0:
-            # always return valid dict
+            # always return valid dict with helpful? error message
             return {'result': 9000, 'error': 'Null return from binary request'}
     return decode(response)
 
