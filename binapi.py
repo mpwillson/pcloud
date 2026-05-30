@@ -1,19 +1,14 @@
-# Testing pCloud binapi.ry protocol
+# Support for pCloud binary protocol API interface
 #
 # pCloud have removed username/password authentication for API method
 # calls. However, the alternative authentication method (OAUTH2) does
-# not work for non-file methods.
+# not work for non-file methods (e.g. collection_list).
 #
-# Programs like rclone will continue to work, but the playlist
-# handling is completely non-functional.
 
 import socket
 import ssl
 import urllib.parse
 import urllib.request
-
-hostname = 'eapi.pcloud.com'
-port = 8399
 
 # Globals
 sock = None
@@ -27,6 +22,14 @@ ARRAY = 17
 BOOL_FALSE = 18
 BOOL_TRUE = 19
 DATA = 20
+
+def is_str(code):
+    'Is pCloud string?'
+    return (code >= 0 and code <= 7) or (code >= 100 and code <= 199)
+
+def is_int(code):
+    'Is pCloud int?'
+    return (code >= 8 and code <= 15) or (code >= 200 and code <= 219)
 
 def ei(value, size):
     'Encode integer to bytes in little endian format'
@@ -68,14 +71,6 @@ def encode(method, params = {}, data = b''):
 def di(b):
     'Decode bytes in little endian format to an int'
     return int.from_bytes(b, 'little')
-
-def is_str(code):
-    'Is pCloud string?'
-    return (code >= 0 and code <= 7) or (code >= 100 and code <= 199)
-
-def is_int(code):
-    'Is pCloud int?'
-    return (code >= 8 and code <= 15) or (code >= 200 and code <= 219)
 
 def decode_int(msg):
     'Decode int from msg. Return tuple of remaining msg contents and int.'
@@ -160,7 +155,8 @@ def decode(msg):
     _, resp = decode_value(msg)
     return resp
 
-def open(hostname, port):
+def open_socket(hostname, port):
+    'Open an SSL-wrapped socket'
     global sock, ssock
     context = ssl.create_default_context()
     sock = socket.create_connection((hostname, port))
@@ -168,7 +164,8 @@ def open(hostname, port):
     ssock = context.wrap_socket(sock, server_hostname=hostname)
     return
 
-def close():
+def close_socket():
+    'Close SSL socket(s), if open'
     global sock, ssock
     if ssock: ssock.close()
     if sock: sock.close()
@@ -176,6 +173,8 @@ def close():
     return
 
 def send_request(method, params = {}, data = b''):
+    '''Send binary request. If SSL socket is not open, open it and close
+       after message sent. Returns response as a python dict.'''
     global sock, ssock
     response = None
     if ssock:
@@ -184,7 +183,7 @@ def send_request(method, params = {}, data = b''):
         byte_length = di(ssock.recv(4))
         response = ssock.recv(byte_length)
         if len(response) == 0:
-            # always return valid dict with helpful? error message
+            # always return valid dict with helpful(?) error message
             return {'result': 9000, 'error': 'Null return from binary request'}
     return decode(response)
 
@@ -192,7 +191,7 @@ if __name__ == "__main__":
     bytes_val = encode('method', {'int': 0, 'str': 'string', 'bool': True})
     assert(bytes_val == b'(\x00\x06method\x03Cint\x00\x00\x00\x00\x00\x00\x00\x00\x03str\x06\x00\x00\x00string\x84bool\x01')
 
-    open(hostname, port)
+    open_socket('eapi.pcloud.com', 8399) # SSL port
 
     # this api call will fail; pCloud don't allow use of access_token with
     # the collection_list method.
@@ -202,4 +201,4 @@ if __name__ == "__main__":
     else:
         print(f'collection_list: error: code: {resp['result']}, '\
               f'msg: {resp['error']}')
-    close()
+    close_socket()
