@@ -10,27 +10,9 @@ import sys
 class Key():
     ASPECT = 'pcp'
 
-def get_folderid(pcloud, path):
-    if path == '/': return 0
-    resp = pcloud.binary_request('stat', {'path': path})
-    print(resp)
-    if resp and resp['result'] and resp['metadata']['isfolder'] == 0:
-        return resp['metadata']['folderid']
-    return None
-
-def upload_file(pcloud, pathname, data):
-    path, filename = os.path.split(pathname)
-    folderid = get_folderid(pcloud, path)
-    if folderid != None:
-        resp = pcloud.binary_request('uploadfile',
-                                     {'filename': filename,
-                                      'folderid': folderid},
-                                     data)
-        if resp['result'] != 0:
-            pcloudapi.error('upload failed')
-    else:
-        pcloudapi.error('unable to find remote folder')
-    return
+# Walking the pCloud filesystem takes a long time.
+# The server-side recursive options seems to have been removed
+# Handling the recursive walk on the client makes it slow
 
 def get_contents(pcloud, fileid):
     'Return contents of pCloud folder.'
@@ -43,7 +25,6 @@ def get_contents(pcloud, fileid):
          raise pcloudapi.PCloudException(pcloud.config[Key.ENDPOINT],
                                          resp['result'], resp['error'])
 
-# This takes a while, so currently unused
 def get_folder_structure(pcloud, path, fileid, fs = {}):
     'Return dict mapping pathnames to fileid.'
     contents = get_contents(pcloud, fileid)
@@ -55,30 +36,58 @@ def get_folder_structure(pcloud, path, fileid, fs = {}):
             fs[f'{path}/{entry["name"]}'] = entry['fileid']
     return fs
 
+def get_folderid(pcloud, path):
+    if path == '/': return 0
+    resp = pcloud.binary_request('stat', {'path': path})
+    if resp['result'] == 0 and resp['metadata']['isfolder'] == 0:
+        return resp['metadata']['folderid']
+    return -1
+
+def upload_file(pcloud, pathname, data):
+    path, filename = os.path.split(pathname)
+    folderid = get_folderid(pcloud, path)
+    if folderid >= 0:
+        resp = pcloud.binary_request('uploadfile',
+                                     {'filename': filename,
+                                      'folderid': folderid},
+                                     data)
+        if resp['result'] != 0:
+            pcloudapi.error(f'upload failed: {resp["error"]}')
+    else:
+        pcloudapi.error(f'unable to locate remote folder: {path}')
+    return
+
+def download_file(pcloud, pathname):
+    data = None
+    resp = pcloud.binary_request('stat', {'path': pathname})
+    if resp['result'] == 0:
+        meta = resp['metadata']
+        if meta['isfolder']:
+            pcloudapi.error('cannot copy a folder: {pathname}')
+        else:
+            resp = pcloud.binary_request('getfilelink',
+                                         {'fileid': meta['fileid']})
+            if resp['result'] == 0:
+                url = f'https://{resp["hosts"][0]}{resp["path"]}'
+                data = pcloudapi.get_url(url)
+            else:
+                pcloudapi.error('getfilelink failed: {resp["error"]}')
+    return data
+
+def write_file(filename, data):
+    f = open(filename, mode='wb')
+    if f:
+        f.write(data)
+        f.close()
+    else:
+        pcloudapi.error('unable to open local file for writing')
+    return
+
 def copy(pcloud, files):
     if files[0]['remote']:
-        from_file = files[0]['filename']
-        resp = pcloud.binary_request('stat', {'path': from_file})
-        if resp['result'] == 0:
-            meta = resp['metadata']
-            if meta['isfolder']:
-                pcloudapi.error('cannot copy a folder')
-            else:
-                resp = pcloud.binary_request('getfilelink',
-                                             {'fileid': meta['fileid']})
-                if resp['result'] == 0:
-                    url = f'https://{resp["hosts"][0]}{resp["path"]}'
-                    data = pcloudapi.get_url(url)
-                    f = open(files[1]['filename'],mode='wb')
-                    if f:
-                        f.write(data)
-                        f.close()
-                    else:
-                        pcloudapi.error('unable to open local file for writing')
-                else:
-                    pcloudapi.error('cannot get link for remote file')
-        else:
-            pcloudapi.error(f'no such remote file: {from_file}')
+        data = download_file(pcloud, files[0]['filename'])
+        if data:
+            write_file(files[1]['filename'], data)
     else:
         data = open(files[0]['filename'],'r').read().encode()
         upload_file(pcloud, files[1]['filename'], data)
@@ -109,7 +118,7 @@ def main():
     pcloud.config[Key.ASPECT] = {}
     args = pcloud.merge_command_options(Key.ASPECT, aspect_opts)
     if len(args) != 2:
-        error('usage: pcp.py from_file to_file')
+        pcloudapi.error('usage: pcp.py from_file to_file')
     try:
         pcloud.authenticate()
         files = parse_filenames(args[0], args[1])
