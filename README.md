@@ -1,26 +1,45 @@
 # pCloud Utilities
 
-This project hosts a number (well, two) of utilities for users of
-[pCloud](https://www.pcloud.com).
+**IMPORTANT**
+
+In mid-April 2026, pCloud removed the username/password authentication
+mechanism and also invalidated any existing auth tokens.  The OAUTH2
+authentication method is now the only method available for pCloud
+apps. However, the access_token granted by the OAUTH2 process does not
+work with many of the API methods, notably those related to the
+handling of collections.  This means that both playlist.py and
+token.py do not work anymore. There has been no indication from pCloud
+that this situation will change.
+
+## Utilities
+
+This project hosts a number (well, three and only one works) of
+utilities for users of [pCloud](https://www.pcloud.com).
 
 They are:
 
 `playlist.py`
 : Converts m3u playlists to pCloud collection playlists. See the
   [README_playlist.md](https://github.com/mpwillson/pcloud/blob/main/README_playlist.md)
-  file for details.
+  file for details. DOES NOT WORK.
 
 `token.py`
 : Manages pCloud authentication tokens. See the
   [README_token.md](https://github.com/mpwillson/pcloud/blob/main/README_token.md)
+  file for details. DOES NOT WORK.
+
+`pcp.py`
+: Copies files to and from pCloud and local storage.  See the
+  [README_token.md](https://github.com/mpwillson/pcloud/blob/main/README_pcp.md)
   file for details.
 
-# REQUIREMENTS
+
+## REQUIREMENTS
 
 - Requires Python version 3.8 or later.
 - Operates on UNIX platforms (Linux, FreeBSD).
 
-# COMMON OPTIONS
+## COMMON OPTIONS
 
 These options are supported by each pcloud utility:
 
@@ -58,7 +77,7 @@ These options are supported by each pcloud utility:
 `-v`
 : Cause the utility to issue messages on its actions. Default is False.
 
-# CONFIGURATION
+## CONFIGURATION
 The default configuration file is `~/.config/pcloud.json`. Here's an
 example with the core configuration options:
 
@@ -96,7 +115,7 @@ configuration options will be written to the file.
 Utility programs may add their own specific configuration elements to
 the **config-file**. See their README files for details.
 
-## Endpoint Setting
+### Endpoint Setting
 
 pCloud has two datacenters; one in United States and one in Europe.
 
