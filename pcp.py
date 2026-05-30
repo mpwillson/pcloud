@@ -39,7 +39,7 @@ def get_folder_structure(pcloud, path, fileid, fs = {}):
 def get_folderid(pcloud, path):
     if path == '/': return 0
     resp = pcloud.binary_request('stat', {'path': path})
-    if resp['result'] == 0 and resp['metadata']['isfolder'] == 0:
+    if resp['result'] == 0 and resp['metadata']['isfolder']:
         return resp['metadata']['folderid']
     return -1
 
@@ -75,22 +75,36 @@ def download_file(pcloud, pathname):
     return data
 
 def write_file(filename, data):
-    f = open(filename, mode='wb')
-    if f:
-        f.write(data)
-        f.close()
-    else:
-        pcloudapi.error('unable to open local file for writing')
+    try:
+        with open(filename, mode='wb') as f:
+            f.write(data)
+    except Exception as e:
+        pcloudapi.error(f'unable to open local file for writing: {e}')
     return
 
 def copy(pcloud, files):
     if files[0]['remote']:
         data = download_file(pcloud, files[0]['filename'])
         if data:
-            write_file(files[1]['filename'], data)
+            to_file = files[1]['filename']
+            if os.path.isdir(to_file):
+                from_file = os.path.basename(files[0]['filename'])
+                to_file = os.path.join(to_file, from_file)
+            write_file(to_file, data)
+        else:
+            pcloudapi.error('empty remote file contents: ' \
+                            f'{files[0]["filename"]}')
     else:
-        data = open(files[0]['filename'],'r').read().encode()
-        upload_file(pcloud, files[1]['filename'], data)
+        try:
+            data = open(files[0]['filename'],'r').read().encode()
+        except Exception as e:
+            pcloudapi.error(f'unable to open file: {e}')
+        to_file = files[1]['filename']
+        folderid = get_folderid(pcloud, to_file)
+        if folderid >= 0:
+            from_file = os.path.basename(files[0]['filename'])
+            to_file = os.path.join(to_file, from_file)
+        upload_file(pcloud, to_file, data)
     return
 
 def parse_filenames(from_file, to_file):
@@ -98,7 +112,7 @@ def parse_filenames(from_file, to_file):
     remote[0] = from_file.startswith('p:')
     remote[1] = to_file.startswith('p:')
     if remote[0] == remote[1]:
-        pcloudapi.error('from and to files must be at different locations')
+        pcloudapi.error('from and to files must be in different locations')
     if remote[0]:
         from_file = from_file[2:]
     else:
