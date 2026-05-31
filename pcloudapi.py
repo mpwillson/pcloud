@@ -114,16 +114,16 @@ class PCloud:
             raise PCloudException(url, err.code, 'http request failed')
         except urllib.error.URLError as err:
             if isinstance(err.reason, socket.timeout):
-                raise PCloudException(url, 9010 'endpoint request timed out')
+                raise PCloudException(url, 9010, 'endpoint request timed out')
             else:
-                raise PCloudException(url, 9011 err)
+                raise PCloudException(url, 9011, err)
         except json.decoder.JSONDecodeError as err:
-            raise PCloudException(url, 9012 'invalid response from endpoint')
+            raise PCloudException(url, 9012, 'invalid response from endpoint')
         except UnicodeError as err:
-            raise PCloudException(url, 9013 err)
+            raise PCloudException(url, 9013, err)
         except http.client.RemoteDisconnected as err:
             # if URL string too long?
-            raise PCloudException(url, 9014 err)
+            raise PCloudException(url, 9014, err)
         return payload
 
     def userinfo(self, username, password, code):
@@ -198,29 +198,34 @@ class PCloud:
                 binapi.open_socket(hostname,
                                    self.config[Key.BINARY_API_PORT])
             except Exception as e:
-                raise PCloudException(self.config[Key.ENDPOINT], 9016
+                raise PCloudException(self.config[Key.ENDPOINT], 9015,
                                       'unable to open binary api endpoint')
         params['access_token'] = self.auth
         response = binapi.send_request(method, params, data)
         if close_sock: binapi.close_socket()
+        # stat is allowed to fail; all other errors are fatal
+        if method != 'stat' and response['result'] != 0:
+            raise PCloudException(self.config[Key.ENDPOINT],
+                                  response['result'], response['error'])
+
         return response
 
-    def _login(self):
+    def _auth(self):
         '''Handles OAUTH login to pCloud. '''
 
         if sys.stdin.isatty():
-            if self.auth == '':
-                url = 'https://my.pcloud.com/oauth2/authorize?' \
-                    f'client_id={self.config[Key.CLIENT_ID]}&' \
-                    'force_reapprove=1&' \
-                    'response_type=code'
-                webbrowser.open(url)
-                code = input('Enter code displayed on pCloud web page: ').\
-                    strip()
-                if code == '': error('missing authentication code.')
-                payload = self.oauth2_token(code)
-                token = payload['access_token']
-                self._add_auth_to_config(token)
+            print('pCloud app authentication started ...')
+            url = 'https://my.pcloud.com/oauth2/authorize?' \
+                f'client_id={self.config[Key.CLIENT_ID]}&' \
+                'force_reapprove=0&' \
+                'response_type=code'
+            webbrowser.open(url)
+            code = input('Enter code displayed on pCloud web page: ').\
+                strip()
+            if code == '': error('missing authentication code.')
+            payload = self.oauth2_token(code)
+            token = payload['access_token']
+            self._add_auth_to_config(token)
         else:
             error('authentication needs terminal device.')
         return
@@ -236,15 +241,14 @@ class PCloud:
     def authenticate(self):
         '''Authenticate to pCloud endpoint.
 
-        If we have a valid auth token, no username/password is
-        required. Otherwise, invoke a login to pCloud. If reauth is
-        True, login is forced.
+        If we have a valid auth token, no further authentication is
+        required. Otherwise, invoke pCloud OAUTH2 authentication. If
+        reauth is True, auth is forced.
 
         '''
 
-        self.auth = '' if Key.REAUTH in self.config else \
-            self.config.get(Key.TOKEN, '')
-        self._login()
+        if self.auth == '' or Key.REAUTH in self.config:
+            self._auth()
         return
 
     def merge_command_options(self, aspect_key, aspect_opts):
