@@ -105,7 +105,7 @@ def parse_filenames(source, destination):
     remote[0] = source.startswith('p:')
     remote[1] = destination.startswith('p:')
     if remote[0] == remote[1]:
-        pcloudapi.error('from and to files must be in different locations')
+        pcloudapi.error('source and destination locations must be different')
     if remote[0]:
         source = source[2:]
     else:
