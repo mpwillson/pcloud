@@ -89,7 +89,7 @@ def copy(pcloud, files):
                             f'{files[0]["filename"]}')
     else:
         try:
-            data = open(files[0]['filename'],'r').read().encode()
+            data = open(files[0]['filename'],'rb').read()
         except Exception as e:
             pcloudapi.error(f'unable to open file: {e}')
         destination = files[1]['filename']
