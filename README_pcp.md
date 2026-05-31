@@ -3,7 +3,7 @@ pcp.py: Copies files to and from pCloud to local storage.
 
 # SYNOPSIS
 ```
-python pcp.py [common_options] from_file to_file
+python pcp.py [common_options] source destination
 ```
 
 # DESCRIPTION
@@ -11,8 +11,8 @@ python pcp.py [common_options] from_file to_file
 pCloud-hosted file (i.e. remote) is indicated by a prefix of
 `p:`. pCloud pathnames are absolute (i.e. must start with a /).
 
-If to_file is a directory, pcp.py will create a file in that directory
-with the same file name as the from_file.
+If destination is a directory, pcp.py will create a file in that directory
+with the same file name as the source file.
 
 # OPTIONS
 There are no pcp.py-specific command options.
