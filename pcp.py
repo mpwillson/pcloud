@@ -19,11 +19,7 @@ def get_contents(pcloud, fileid):
     resp = pcloud.binary_request('listfolder',
                                  {'folderid': fileid, 'recursive': 0,
                                   'nofiles': 0, 'noshares': 0})
-    if resp['result'] == 0:
-        return resp['metadata']['contents']
-    else:
-         raise pcloudapi.PCloudException(pcloud.config[Key.ENDPOINT],
-                                         resp['result'], resp['error'])
+    return resp['metadata']['contents']
 
 def get_folder_structure(pcloud, path, fileid, fs = {}):
     'Return dict mapping pathnames to fileid.'
@@ -51,8 +47,6 @@ def upload_file(pcloud, pathname, data):
                                      {'filename': filename,
                                       'folderid': folderid},
                                      data)
-        if resp['result'] != 0:
-            pcloudapi.error(f'upload failed: {resp["error"]}')
     else:
         pcloudapi.error(f'unable to locate remote folder: {path}')
     return
@@ -67,11 +61,10 @@ def download_file(pcloud, pathname):
         else:
             resp = pcloud.binary_request('getfilelink',
                                          {'fileid': meta['fileid']})
-            if resp['result'] == 0:
-                url = f'https://{resp["hosts"][0]}{resp["path"]}'
-                data = pcloudapi.get_url(url)
-            else:
-                pcloudapi.error('getfilelink failed: {resp["error"]}')
+            url = f'https://{resp["hosts"][0]}{resp["path"]}'
+            data = pcloudapi.get_url(url)
+    else:
+        pcloudapi.error(f'no such remote file: {pathname}')
     return data
 
 def write_file(filename, data):
@@ -86,11 +79,11 @@ def copy(pcloud, files):
     if files[0]['remote']:
         data = download_file(pcloud, files[0]['filename'])
         if data:
-            to_file = files[1]['filename']
-            if os.path.isdir(to_file):
-                from_file = os.path.basename(files[0]['filename'])
-                to_file = os.path.join(to_file, from_file)
-            write_file(to_file, data)
+            destination = files[1]['filename']
+            if os.path.isdir(destination):
+                source = os.path.basename(files[0]['filename'])
+                destination = os.path.join(destination, source)
+            write_file(destination, data)
         else:
             pcloudapi.error('empty remote file contents: ' \
                             f'{files[0]["filename"]}')
@@ -99,32 +92,32 @@ def copy(pcloud, files):
             data = open(files[0]['filename'],'r').read().encode()
         except Exception as e:
             pcloudapi.error(f'unable to open file: {e}')
-        to_file = files[1]['filename']
-        folderid = get_folderid(pcloud, to_file)
+        destination = files[1]['filename']
+        folderid = get_folderid(pcloud, destination)
         if folderid >= 0:
-            from_file = os.path.basename(files[0]['filename'])
-            to_file = os.path.join(to_file, from_file)
-        upload_file(pcloud, to_file, data)
+            source = os.path.basename(files[0]['filename'])
+            destination = os.path.join(destination, source)
+        upload_file(pcloud, destination, data)
     return
 
-def parse_filenames(from_file, to_file):
+def parse_filenames(source, destination):
     remote = [False, False]
-    remote[0] = from_file.startswith('p:')
-    remote[1] = to_file.startswith('p:')
+    remote[0] = source.startswith('p:')
+    remote[1] = destination.startswith('p:')
     if remote[0] == remote[1]:
         pcloudapi.error('from and to files must be in different locations')
     if remote[0]:
-        from_file = from_file[2:]
+        source = source[2:]
     else:
-        from_file = os.path.expanduser(os.path.expandvars(from_file))
+        source = os.path.expanduser(os.path.expandvars(source))
     if remote[1]:
-        to_file = to_file[2:]
+        destination = destination[2:]
     else:
-        to_file = os.path.expanduser(os.path.expandvars(to_file))
-    if to_file == '.':
-        to_file = os.path.basename(from_file)
-    return [{'remote': remote[0], 'filename': from_file},
-            {'remote': remote[1], 'filename': to_file}]
+        destination = os.path.expanduser(os.path.expandvars(destination))
+    if destination == '.':
+        destination = os.path.basename(source)
+    return [{'remote': remote[0], 'filename': source},
+            {'remote': remote[1], 'filename': destination}]
 
 def main():
     pcloud = pcloudapi.PCloud()
@@ -132,7 +125,7 @@ def main():
     pcloud.config[Key.ASPECT] = {}
     args = pcloud.merge_command_options(Key.ASPECT, aspect_opts)
     if len(args) != 2:
-        pcloudapi.error('usage: pcp.py from_file to_file')
+        pcloudapi.error('usage: pcp.py source destination')
     try:
         pcloud.authenticate()
         files = parse_filenames(args[0], args[1])
