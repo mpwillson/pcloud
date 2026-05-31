@@ -126,14 +126,13 @@ def main():
     args = pcloud.merge_command_options(Key.ASPECT, aspect_opts)
     if len(args) != 2:
         pcloudapi.error('usage: pcp.py source destination')
+
     try:
         pcloud.authenticate()
         files = parse_filenames(args[0], args[1])
         copy(pcloud, files)
-
     except pcloudapi.PCloudException as err:
-        pcloudapi.error(f'error: {err.code}; message: {err.msg}\n'\
-                        f'Url: {err.url}')
+        pcloudapi.error(f'error: {err.code}; message: {err.msg}')
     return
 
 if __name__ == '__main__':
