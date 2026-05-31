@@ -1,4 +1,4 @@
-# pCloud Utilities
+# putil - pCloud Utilities
 
 **IMPORTANT**
 
@@ -30,7 +30,7 @@ They are:
 
 `pcp.py`
 : Copies files to and from pCloud and local storage.  See the
-  [README_token.md](https://github.com/mpwillson/pcloud/blob/main/README_pcp.md)
+  [README_pcp.md](https://github.com/mpwillson/pcloud/blob/main/README_pcp.md)
   file for details.
 
 
@@ -54,12 +54,7 @@ These options are supported by each pcloud utility:
   below.
 
 `-r`
-: Force login reauthentication. Specify this option if use of the
-  existing authentication token produces a 'Login failed' message. The
-  auth token may have been deleted from the pCloud server. A username
-  (if not already provided in the **config-file**) and password will
-  be requested. If a username is not present in the **config-file**,
-  the one entered will be saved.
+: Force OAUTH2 reauthentication.
 
 `-s`
 : Save options specified on command line to the configuration file
@@ -77,6 +72,19 @@ These options are supported by each pcloud utility:
 `-v`
 : Cause the utility to issue messages on its actions. Default is False.
 
+## AUTHENTICATION
+Authentication via OAUTH2 will be invoked the first time a pCloud app
+is run or if the `-r` option is provided. The authentication process
+requires a browser, so must be invoked within GUI session. The pCloud
+Authorisation page will request your login details (if not cached) and
+ask your permission to allow the `putil` app to access your pCloud
+files.
+
+If you grant access, pCloud will provide an authentication code, which
+the `putil` app prompts for. Once entered, `putil` then requests an
+access token from pCloud. If successful, the access token is stored in
+the `putil` configuration file.
+
 ## CONFIGURATION
 The default configuration file is `~/.config/pcloud.json`. Here's an
 example with the core configuration options:
@@ -85,24 +93,13 @@ example with the core configuration options:
 {
   "config-file": "~/.config/pcloud.json",
   "endpoint": "https://eapi.pcloud.com",
+  "access_token": "",
+  "binary-api-port": 8399,
   "timeout": 2,
-  "username": "user@example.com",
+  "client-id" "randomID",
   "verbose": false
 }
 
-```
-Authentication token details will be added to the configuration
-file once a successful login is effected. Username and password will
-not be requred again, until the authentication token expires (one
-year).
-
-The authentication details are held as:
-
-``` json
-"auth": {
-  "token": "some random string",
-  "expires": "Sat Mar 18 21:39:17 2023"
-}
 ```
 
 The configuration file location can be overridden by the **-f**
