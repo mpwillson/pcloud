@@ -320,7 +320,7 @@ def _create_private(filename):
     return
 
 def error(msg, die=True):
-    print(f'{sys.argv[0]}: {msg}', file=sys.stderr)
+    print(f'{os.path.basename(sys.argv[0])}: {msg}', file=sys.stderr)
     if die: sys.exit(1)
     return
 
