@@ -27,6 +27,9 @@ import socket
 import hashlib
 import webbrowser
 import binapi
+import traceback
+
+DEBUG = False
 
 class Key():
     AUTH = 'auth'
@@ -203,12 +206,15 @@ class PCloud:
         params['access_token'] = self.auth
         response = binapi.send_request(method, params, data)
         if close_sock: binapi.close_socket()
-        # stat is allowed to fail; all other errors are fatal
-        if method != 'stat' and response['result'] != 0:
-            raise PCloudException(self.config[Key.ENDPOINT],
-                                  response['result'], response['error'])
-
-        return response
+        # stat is allowed to fail (clients needs to know); all other
+        # errors are fatal
+        if response['result'] == 0 or method == 'stat':
+            return response
+        if DEBUG:
+            traceback.print_stack()
+        raise PCloudException(self.config[Key.ENDPOINT],
+                              response['result'], response['error'])
+        return
 
     def _auth(self):
         '''Handles OAUTH login to pCloud. '''
