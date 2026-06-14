@@ -173,18 +173,29 @@ def close_socket():
     return
 
 def send_request(method, params = {}, data = b''):
-    '''Send binary request. If SSL socket is not open, open it and close
-       after message sent. Returns response as a python dict.'''
+    '''Send binary request. '''
     global sock, ssock
-    response = None
+    response = b''
     if ssock:
         request = encode(method, params, data)
         nsent = ssock.send(request)
         byte_length = di(ssock.recv(4))
-        response = ssock.recv(byte_length)
-        if len(response) == 0:
-            # always return valid dict with helpful(?) error message
-            return {'result': 9000, 'error': 'Null return from binary request'}
+        more = True
+        while more:
+            try:
+                resp = ssock.recv(2048)
+            except TimeoutError:
+                return {'result': 9002, 'error': \
+                        'Timeout error on response from binary request'}
+            nresp = len(resp)
+            if nresp == 0:
+                return {'result': 9000, 'error': \
+                        'Null return from binary request'}
+            response += resp
+            if len(response) == byte_length:
+                more = False
+    else:
+        return {'result': 9001, 'error': 'Secure socket is not open'}
     return decode(response)
 
 if __name__ == "__main__":
