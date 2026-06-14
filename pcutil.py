@@ -161,7 +161,8 @@ def copy_file(pcloud, source, dest):
                     if base and not os.path.exists(base): os.makedirs(base)
 
             if dryrun:
-                print(f'cp p:/{source_file} {destination}')
+                print(f'cp {("p:/"+source_file).replace("//", "/")} '\
+                      f'{destination}')
             else:
                 write_file(destination, data)
         else:
@@ -175,26 +176,27 @@ def copy_file(pcloud, source, dest):
         data = read_file(source_file)
         destination = dest['filename']
         filename = os.path.basename(source_file)
-        isfolder = dest['isfolder']
         folderid = dest['id']
-        if folderid < 0:
+        folder = ''
+        if dest['id'] < 0:
             folder, filename = os.path.split(destination)
             if folder:
-                if dryrun:
-                    print(f'mkfolder {folder}')
-                else:
-                    folderid = create_folders(pcloud, folder)
-            else:
-                folderid = 0
-        elif isfolder:
+                isfolder, folderid = get_pathinfo(pcloud, folder)
+                if folderid < 0:
+                    if dryrun:
+                        print(f'mkfolder p:/{folder.strip('/')}')
+                    else:
+                        folderid = create_folders(pcloud, folder)
+        elif dest['isfolder']:
             filename = os.path.basename(source_file)
+            folder = destination
         else:
             folder, filename = os.path.split(destination)
             _, folderid = get_pathinfo(pcloud, folder)
         if dryrun:
             # kludge, sigh
-            dest_path = (destination+"/"+filename).replace('//', '/')
-            print(f'cp {source_file} p:{dest_path}')
+            dest_path = (folder+"/"+filename).strip('/')
+            print(f'cp {source_file} p:/{dest_path}')
 
         else:
             upload_file(pcloud, folderid, filename, data)
@@ -230,12 +232,15 @@ def copy_from_remote(pcloud, source_file, sourceid, dest):
 
 def copy_to_remote(pcloud, source_dir, folderid, folder_name):
     '''Copy files recursively to pCloud.'''
+    dryrun = Key.DRYRUN in pcloud.config[Key.ASPECT]
+    folders = {}
     if folderid < 0:
-        folderid = create_folders(pcloud, folder_name)
-
+        if dryrun:
+            print(f'mkfolder {folder_name}')
+        else:
+            folderid = create_folders(pcloud, folder_name)
     folders = {folder_name: folderid}
     source_dirname = os.path.dirname(source_dir)
-    dryrun = Key.DRYRUN in pcloud.config[Key.ASPECT]
 
     for root, dirs, files in os.walk(source_dir):
         if source_dirname: root = root.replace(source_dirname+'/', '')
@@ -248,7 +253,7 @@ def copy_to_remote(pcloud, source_dir, folderid, folder_name):
             baseid = folders[base]
             new_folder = base+'/'+folder
             if dryrun:
-                print(f'mkfolder {os.path.normpath("p:"+folder)}')
+                print(f'mkfolder {os.path.normpath("p:/"+root)}')
                 folders[new_folder] = '[0]'
             else:
                 folders[new_folder] = baseid = \
