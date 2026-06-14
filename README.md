@@ -28,9 +28,10 @@ They are:
   [README_token.md](https://github.com/mpwillson/pcloud/blob/main/README_token.md)
   file for details. DOES NOT WORK.
 
-`pcp.py`
-: Copies files to and from pCloud and local storage.  See the
-  [README_pcp.md](https://github.com/mpwillson/pcloud/blob/main/README_pcp.md)
+`pcutil.py`
+: Provides cp and rm utilties.  cp copies files to and from pCloud and
+  local storage.  rm deletes files and folders from pCloud. See the
+  [README_pcutil.md](https://github.com/mpwillson/pcloud/blob/main/README_pcutil.md)
   file for details.
 
 
