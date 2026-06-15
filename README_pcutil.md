@@ -70,4 +70,6 @@ For `rm`, deletes specified folder(s) recursively. **Use with care.**
 Under no circumstances should you use pcutil.py instead of rclone.
 
 # BUGS
-Many and various.
+An empty local file cannot be uploaded to pCloud.
+
+Others too many and various to mention.
