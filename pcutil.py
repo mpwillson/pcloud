@@ -263,10 +263,10 @@ def copy_to_remote(pcloud, source_dir, folderid, folder_name):
                             f'{base}')
         for file in files:
             if dryrun:
-                print(f'cp {root}/{file} ' \
+                print(f'cp {source_dirname}/{root}/{file} ' \
                       f'{os.path.normpath('p:'+folder_name+"/"+root+"/"+file)}')
             else:
-                data = read_file(f'{root}/{file}')
+                data = read_file(f'{source_dirname}/{root}/{file}')
                 upload_file(pcloud, baseid, file, data)
     return
 
@@ -279,24 +279,33 @@ def copy(pcloud, files):
         copy_file(pcloud, source, dest)
         return
 
-    source_file = source['filename']
+    source_dir = source['filename']
     if source['id'] < 0:
-        pcloudapi.error(f'source does not exist: {source_file}')
+        pcloudapi.error(f'source does not exist: {source_dir}')
     dest_file = dest['filename']
 
     if not dest['isfolder'] and dest['id'] >= 0:
         # dest is file
         pcloudapi.error(f'invalid recursive destination: {dest_file}')
     if source['remote']:
-        if source_file.endswith('/'):
-            source_file = source_file[:-1]
+        if source_dir.endswith('/'):
+            source_dir = source_dir[:-1]
         else:
-            dest_file = dest_file + '/' + os.path.basename(source_file)
-        copy_from_remote(pcloud, source_file, source['id'], dest_file)
+            dest_file = dest_file + '/' + os.path.basename(source_dir)
+        copy_from_remote(pcloud, source_dir, source['id'], dest_file)
     else:
-        copy_to_remote(pcloud, source_file, dest['id'], dest_file)
+        if not source['isfolder']:
+            pcloudapi.error(f'source is not a directory: {source_dir}')
+        copy_to_remote(pcloud, source_dir, dest['id'], dest_file)
 
     return
+def local_file_munge(filename):
+    if filename.startswith('..'):
+        filename = filename.replace('..', os.path.dirname(os.getcwd()), 1)
+    elif filename.startswith('.'):
+        filename = filename.replace('.', os.getcwd(), 1)
+    filename = os.path.expanduser(os.path.expandvars(filename))
+    return filename
 
 def parse_filenames(pcloud, source_file, dest_file):
     '''Returns dict based on parsing source and destination paths.'''
@@ -305,36 +314,26 @@ def parse_filenames(pcloud, source_file, dest_file):
     dest = {}
     source['remote'] = source_file.startswith('p:')
     dest['remote'] = dest_file.startswith('p:')
-
     if source['remote'] == dest['remote']:
         pcloudapi.error('source and destination locations must be different')
 
-    if source_file.startswith('.'):
-        source_file = source_file.replace('.', os.getcwd(), 1)
-
     if source['remote']:
         source_file = source_file[2:]
-    else:
-        source_file = os.path.expanduser(os.path.expandvars(source_file))
-    source['filename'] = source_file
-    if source['remote']:
         isfolder, id = get_pathinfo(pcloud, source_file[:-1] \
                                     if source_file.endswith('/') \
                                     else source_file)
         source['isfolder'] = isfolder
         source['id'] = id
     else:
-        if source_file.startswith('.'):
-            source_file = source_file.replace('.', os.getcwd(), 1)
+        source_file = local_file_munge(source_file)
         source['isfolder'] = os.path.isdir(source_file)
         source['id'] = 0 if os.path.exists(source_file) else -1
+    source['filename'] = source_file
 
     if dest['remote']:
         dest_file = dest_file[2:]
     else:
-        dest_file = os.path.expanduser(os.path.expandvars(dest_file))
-    if dest_file.startswith('.'):
-        dest_file = dest_file.replace('.', os.getcwd(), 1)
+        dest_file = local_file_munge(dest_file)
     dest['filename'] = dest_file
     if dest['remote']:
         isfolder, id = get_pathinfo(pcloud, dest_file)
@@ -363,14 +362,15 @@ def rm(pcloud, pathnames):
                     resp = pcloud.binary_request('deletefolder',
                                                  {'folderid': id})
                 else:
-                    pcloudapi.error('cannot rm folder: use -r.')
+                    pcloudapi.error(f'cannot rm non-empty folder: use -r: ' \
+                                    f'{pathname}')
             else:
                 if dryrun:
                     print(f'rm -r {pathname}')
                 else:
                     resp = pcloud.binary_request('deletefolderrecursive',
                                                  {'folderid': id})
-                    print(f'{resp["deletedfolders"]} folders, ' \
+                    print(f'{pathname}: {resp["deletedfolders"]} folders, ' \
                            f'{resp["deletedfiles"]} files deleted.')
         else:
             if dryrun:
