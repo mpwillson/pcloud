@@ -370,8 +370,8 @@ def rm(pcloud, pathnames):
                 else:
                     resp = pcloud.binary_request('deletefolderrecursive',
                                                  {'folderid': id})
-                    print(f'{pathname}: {resp["deletedfolders"]} folders, ' \
-                           f'{resp["deletedfiles"]} files deleted.')
+                    print(f'{pathname}: {resp["deletedfolders"]} folder(s), ' \
+                           f'{resp["deletedfiles"]} file(s) deleted.')
         else:
             if dryrun:
                 print(f'rm {pathname}')
@@ -402,11 +402,11 @@ def main():
 
     args[1:] = largs
     if args[0] == 'cp' and len(args) == 1:
-        pcloudapi.error('missing source and destination.')
+        pcloudapi.error('usage: cp [-dr] source destination')
     elif args[0] == 'cp' and len(args) != 3:
-        pcloudapi.error('missing destination.')
+        pcloudapi.error('usage: cp [-dr] source destination')
     elif args[0] == 'rm' and len(args) < 2:
-        pcloudapi.error('no file/folder names specified.')
+        pcloudapi.error('usage: rm [-dr] {file|folder}  [{file|folder} ...]')
 
     try:
         pcloud.authenticate()
