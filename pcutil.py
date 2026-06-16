@@ -253,7 +253,7 @@ def copy_to_remote(pcloud, source_dir, folderid, folder_name):
             baseid = folders[base]
             new_folder = base+'/'+folder
             if dryrun:
-                print(f'mkfolder {os.path.normpath("p:/"+root)}')
+                print(f'mkfolder {os.path.normpath("p:/"+new_folder)}')
                 folders[new_folder] = '[0]'
             else:
                 folders[new_folder] = baseid = \
@@ -318,7 +318,7 @@ def parse_filenames(pcloud, source_file, dest_file):
         pcloudapi.error('source and destination locations must be different')
 
     if source['remote']:
-        source_file = source_file[2:]
+        source_file = source_file[2:].replace('//', '/')
         isfolder, id = get_pathinfo(pcloud, source_file[:-1] \
                                     if source_file.endswith('/') \
                                     else source_file)
