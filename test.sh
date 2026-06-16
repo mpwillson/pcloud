@@ -31,8 +31,8 @@ python pcutil.py cp -d pcutil.py p:/${PTMP}
 python pcutil.py cp pcutil.py p:/${PTMP}
 
 python pcutil.py cp -d p:/${PTMP}/new_pcutil.py ${TMP}/test/new1_pcutil.py
-python pcutil.py cp p:/${PTMP}/new_pcutil.py ${TMP}/new1_pcutil.py
-ls -l ${TMP}/new1_pcutil.py
+python pcutil.py cp p:/${PTMP}/new_pcutil.py ${TMP}/test/new1_pcutil.py
+ls -l ${TMP}/test/new1_pcutil.py
 
 python pcutil.py cp pcutil.py p:/${PTMP}/nd1/nd2/pcutil.py
 python pcutil.py cp p:/${PTMP}/nd1/nd2/pcutil.py ${TMP}
