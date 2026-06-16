@@ -230,41 +230,47 @@ def copy_from_remote(pcloud, source_file, sourceid, dest):
             if data: write_file(edest, data)
     return
 
-def copy_to_remote(pcloud, source_dir, folderid, folder_name):
+def copy_to_remote(pcloud, source, folderid, folder_name):
     '''Copy files recursively to pCloud.'''
     dryrun = Key.DRYRUN in pcloud.config[Key.ASPECT]
+    source_dir = source['filename']
     folders = {}
     if folderid < 0:
         if dryrun:
-            print(f'mkfolder {folder_name}')
+            print(f'mkfolder p:{folder_name}')
         else:
             folderid = create_folders(pcloud, folder_name)
     folders = {folder_name: folderid}
-    source_dirname = os.path.dirname(source_dir)
-
+    if source['omitdir']:
+        source_dirname = source_dir
+    else:
+        source_dirname = os.path.dirname(source_dir)
     for root, dirs, files in os.walk(source_dir):
-        if source_dirname: root = root.replace(source_dirname+'/', '')
+        if source_dirname: root = root.replace(source_dirname, '')
         base, folder = os.path.split(root)
         if not base:
             base = folder_name
+        elif base == '/':
+            base = folder_name
         else:
-            base = folder_name + '/' + base
+            base = (folder_name + '/' + base).replace('//', '/')
         if base in folders:
             baseid = folders[base]
-            new_folder = base+'/'+folder
-            if dryrun:
-                print(f'mkfolder {os.path.normpath("p:/"+new_folder)}')
-                folders[new_folder] = '[0]'
-            else:
-                folders[new_folder] = baseid = \
-                    create_folder(pcloud, baseid, folder)
+            if folder:
+                new_folder = base+'/'+folder
+                if dryrun:
+                    print(f'mkfolder {os.path.normpath("p:/"+new_folder)}')
+                    folders[new_folder] = '[0]'
+                else:
+                    folders[new_folder] = baseid = \
+                        create_folder(pcloud, baseid, folder)
         else:
             pcloudapi.error(f'internal error: target folder doesn\'t exist: ' \
                             f'{base}')
         for file in files:
             if dryrun:
-                print(f'cp {source_dirname}/{root}/{file} ' \
-                      f'{os.path.normpath('p:'+folder_name+"/"+root+"/"+file)}')
+                print(f'cp {os.path.normpath(source_dirname+"/"+root+"/"+file)} ' \
+                      f'{os.path.normpath("p:"+folder_name+"/"+root+"/"+file)}')
             else:
                 data = read_file(f'{source_dirname}/{root}/{file}')
                 upload_file(pcloud, baseid, file, data)
@@ -288,17 +294,16 @@ def copy(pcloud, files):
         # dest is file
         pcloudapi.error(f'invalid recursive destination: {dest_file}')
     if source['remote']:
-        if source_dir.endswith('/'):
-            source_dir = source_dir[:-1]
-        else:
+        if not source['omitdir']:
             dest_file = dest_file + '/' + os.path.basename(source_dir)
-        copy_from_remote(pcloud, source_dir, source['id'], dest_file)
+        copy_from_remote(pcloud, source['filename'], source['id'], dest_file)
     else:
         if not source['isfolder']:
             pcloudapi.error(f'source is not a directory: {source_dir}')
-        copy_to_remote(pcloud, source_dir, dest['id'], dest_file)
+        copy_to_remote(pcloud, source, dest['id'], dest_file)
 
     return
+
 def local_file_munge(filename):
     if filename.startswith('..'):
         filename = filename.replace('..', os.path.dirname(os.getcwd()), 1)
@@ -307,7 +312,7 @@ def local_file_munge(filename):
     filename = os.path.expanduser(os.path.expandvars(filename))
     return filename
 
-def parse_filenames(pcloud, source_file, dest_file):
+def parse_filenames(pcloud, source_file, dest_file, recursive):
     '''Returns dict based on parsing source and destination paths.'''
     remote = [False, False]
     source = {}
@@ -317,11 +322,17 @@ def parse_filenames(pcloud, source_file, dest_file):
     if source['remote'] == dest['remote']:
         pcloudapi.error('source and destination locations must be different')
 
+    source['omitdir'] = False
+    if source_file.endswith('/'):
+        source_file = source_file[:-1]
+        source['omitdir'] = True
+    elif recursive:
+        dest_file = (dest_file + '/' +
+                     os.path.basename(source_file)).replace('//', '/')
+
     if source['remote']:
         source_file = source_file[2:].replace('//', '/')
-        isfolder, id = get_pathinfo(pcloud, source_file[:-1] \
-                                    if source_file.endswith('/') \
-                                    else source_file)
+        isfolder, id = get_pathinfo(pcloud, source_file)
         source['isfolder'] = isfolder
         source['id'] = id
     else:
@@ -411,7 +422,7 @@ def main():
     try:
         pcloud.authenticate()
         if args[0] == 'cp':
-            files = parse_filenames(pcloud, args[1], args[2])
+            files = parse_filenames(pcloud, args[1], args[2], recursive)
             if DEBUG: print(files)
             copy(pcloud, files)
         elif args[0] == 'rm':
