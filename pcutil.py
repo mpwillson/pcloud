@@ -17,7 +17,7 @@ import os
 import sys
 import getopt
 
-DEBUG = True
+DEBUG = False
 
 class Key():
     ASPECT = 'pcutil'
@@ -243,8 +243,7 @@ def copy_to_remote(pcloud, source, folderid, folder_name):
             folderid = create_folders(pcloud, folder_name)
     folders = {folder_name: folderid}
     for root, dirs, files in os.walk(source_dir):
-        if source_dir: root = root.replace(source_dir, '')
-        print('new root: '+root)
+        if source_dir != '/': root = root.replace(source_dir, '')
         base, folder = os.path.split(root)
         if not base:
             base = folder_name
@@ -255,7 +254,7 @@ def copy_to_remote(pcloud, source, folderid, folder_name):
         if base in folders:
             baseid = folders[base]
             if folder:
-                new_folder = base+'/'+folder
+                new_folder = (base+'/'+folder).replace('//','/')
                 if dryrun:
                     print(f'mkfolder {os.path.normpath("p:/"+new_folder)}')
                     folders[new_folder] = '[0]'
@@ -263,6 +262,7 @@ def copy_to_remote(pcloud, source, folderid, folder_name):
                     folders[new_folder] = baseid = \
                         create_folder(pcloud, baseid, folder)
         else:
+            print(folders)
             pcloudapi.error(f'internal error: target folder doesn\'t exist: ' \
                             f'{base}')
         for file in files:
@@ -319,11 +319,12 @@ def parse_filenames(pcloud, source_file, dest_file):
     if source['remote'] == dest['remote']:
         pcloudapi.error('cp: source and destination cannot be at same location')
 
-    if source_file.endswith('/'):
-        source_file = source_file[:-1]
-    elif Key.RECURSIVE in pcloud.config[Key.ASPECT]:
-        dest_file = (dest_file + '/' +
-                     os.path.basename(source_file)).replace('//', '/')
+    if source_file != '/':
+        if source_file.endswith('/'):
+            source_file = source_file[:-1]
+        elif Key.RECURSIVE in pcloud.config[Key.ASPECT]:
+            dest_file = (dest_file + '/' +
+                         os.path.basename(source_file)).replace('//', '/')
 
     if source['remote']:
         source_file = source_file[2:].replace('//', '/')
