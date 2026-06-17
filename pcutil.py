@@ -17,7 +17,7 @@ import os
 import sys
 import getopt
 
-DEBUG = False
+DEBUG = True
 
 class Key():
     ASPECT = 'pcutil'
@@ -213,6 +213,7 @@ def copy_from_remote(pcloud, source_file, sourceid, dest):
             print(f'mkdir {dest}')
         else:
             os.makedirs(dest)
+    #print(dest)
     entries = get_contents(pcloud, sourceid)
     folders = [entry for entry in entries if entry['isfolder']]
     files = [entry for entry in entries if not entry['isfolder']]
@@ -241,12 +242,9 @@ def copy_to_remote(pcloud, source, folderid, folder_name):
         else:
             folderid = create_folders(pcloud, folder_name)
     folders = {folder_name: folderid}
-    if source['omitdir']:
-        source_dirname = source_dir
-    else:
-        source_dirname = os.path.dirname(source_dir)
     for root, dirs, files in os.walk(source_dir):
-        if source_dirname: root = root.replace(source_dirname, '')
+        if source_dir: root = root.replace(source_dir, '')
+        print('new root: '+root)
         base, folder = os.path.split(root)
         if not base:
             base = folder_name
@@ -269,10 +267,11 @@ def copy_to_remote(pcloud, source, folderid, folder_name):
                             f'{base}')
         for file in files:
             if dryrun:
-                print(f'cp {os.path.normpath(source_dirname+"/"+root+"/"+file)} ' \
+                print('cp ' \
+                      f'{os.path.normpath(source_dir+"/"+root+"/"+file)} ' \
                       f'{os.path.normpath("p:"+folder_name+"/"+root+"/"+file)}')
             else:
-                data = read_file(f'{source_dirname}/{root}/{file}')
+                data = read_file(f'{source_dir}/{root}/{file}')
                 upload_file(pcloud, baseid, file, data)
     return
 
@@ -294,9 +293,7 @@ def copy(pcloud, files):
         # dest is file
         pcloudapi.error(f'invalid recursive destination: {dest_file}')
     if source['remote']:
-        if not source['omitdir']:
-            dest_file = dest_file + '/' + os.path.basename(source_dir)
-        copy_from_remote(pcloud, source['filename'], source['id'], dest_file)
+         copy_from_remote(pcloud, source['filename'], source['id'], dest_file)
     else:
         if not source['isfolder']:
             pcloudapi.error(f'source is not a directory: {source_dir}')
@@ -312,7 +309,7 @@ def local_file_munge(filename):
     filename = os.path.expanduser(os.path.expandvars(filename))
     return filename
 
-def parse_filenames(pcloud, source_file, dest_file, recursive):
+def parse_filenames(pcloud, source_file, dest_file):
     '''Returns dict based on parsing source and destination paths.'''
     remote = [False, False]
     source = {}
@@ -320,13 +317,11 @@ def parse_filenames(pcloud, source_file, dest_file, recursive):
     source['remote'] = source_file.startswith('p:')
     dest['remote'] = dest_file.startswith('p:')
     if source['remote'] == dest['remote']:
-        pcloudapi.error('source and destination locations must be different')
+        pcloudapi.error('cp: source and destination cannot be at same location')
 
-    source['omitdir'] = False
     if source_file.endswith('/'):
         source_file = source_file[:-1]
-        source['omitdir'] = True
-    elif recursive:
+    elif Key.RECURSIVE in pcloud.config[Key.ASPECT]:
         dest_file = (dest_file + '/' +
                      os.path.basename(source_file)).replace('//', '/')
 
@@ -393,7 +388,6 @@ def rm(pcloud, pathnames):
 def main():
     pcloud = pcloudapi.PCloud()
     pcloud.config[Key.ASPECT] = {}
-    recursive = False
     args = pcloud.merge_command_options(Key.ASPECT, {})
     if len(args) == 0:
         pcloudapi.error('usage: pcutil.py ' \
@@ -412,9 +406,7 @@ def main():
         pcloudapi.error(f'{args[0]}: {err}')
 
     args[1:] = largs
-    if args[0] == 'cp' and len(args) == 1:
-        pcloudapi.error('usage: cp [-dr] source destination')
-    elif args[0] == 'cp' and len(args) != 3:
+    if args[0] == 'cp' and len(args) != 3:
         pcloudapi.error('usage: cp [-dr] source destination')
     elif args[0] == 'rm' and len(args) < 2:
         pcloudapi.error('usage: rm [-dr] {file|folder}  [{file|folder} ...]')
@@ -422,7 +414,7 @@ def main():
     try:
         pcloud.authenticate()
         if args[0] == 'cp':
-            files = parse_filenames(pcloud, args[1], args[2], recursive)
+            files = parse_filenames(pcloud, args[1], args[2])
             if DEBUG: print(files)
             copy(pcloud, files)
         elif args[0] == 'rm':
