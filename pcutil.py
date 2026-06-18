@@ -24,6 +24,9 @@ class Key():
     DRYRUN = 'dryrun'
     RECURSIVE = 'recursive'
 
+def normpath(path):
+    return os.path.normpath(path).replace('//', '/')
+
 # Walking the pCloud filesystem takes a long time. Hence, unused.
 #
 # The server-side recursive option seems to have been removed.
@@ -219,11 +222,11 @@ def copy_from_remote(pcloud, source_file, sourceid, dest):
     files = [entry for entry in entries if not entry['isfolder']]
 
     for folder in folders:
-        edest = os.path.normpath(f'{dest}/{folder["name"]}')
+        edest = normpath(f'{dest}/{folder["name"]}')
         copy_from_remote(pcloud, folder['name'], folder['folderid'], edest)
 
     for file_entry in files:
-        edest = os.path.normpath(f'{dest}/{file_entry["name"]}')
+        edest = normpath(f'{dest}/{file_entry["name"]}')
         if dryrun:
             print(f'cp p:[{file_entry["fileid"]}] {edest}')
         else:
@@ -250,13 +253,13 @@ def copy_to_remote(pcloud, source, folderid, folder_name):
         elif base == '/':
             base = folder_name
         else:
-            base = (folder_name + '/' + base).replace('//', '/')
+            base = normpath(folder_name + '/' + base)
         if base in folders:
             baseid = folders[base]
             if folder:
-                new_folder = (base+'/'+folder).replace('//','/')
+                new_folder = normpath(base+'/'+folder)
                 if dryrun:
-                    print(f'mkfolder {os.path.normpath("p:/"+new_folder)}')
+                    print(f'mkfolder {normpath("p:/"+new_folder)}')
                     folders[new_folder] = '[0]'
                 else:
                     folders[new_folder] = baseid = \
@@ -268,8 +271,8 @@ def copy_to_remote(pcloud, source, folderid, folder_name):
         for file in files:
             if dryrun:
                 print('cp ' \
-                      f'{os.path.normpath(source_dir+"/"+root+"/"+file)} ' \
-                      f'{os.path.normpath("p:"+folder_name+"/"+root+"/"+file)}')
+                      f'{normpath(source_dir+"/"+root+"/"+file)} ' \
+                      f'{normpath("p:"+folder_name+"/"+root+"/"+file)}')
             else:
                 data = read_file(f'{source_dir}/{root}/{file}')
                 upload_file(pcloud, baseid, file, data)
@@ -323,11 +326,11 @@ def parse_filenames(pcloud, source_file, dest_file):
         if source_file.endswith('/'):
             source_file = source_file[:-1]
         elif Key.RECURSIVE in pcloud.config[Key.ASPECT]:
-            dest_file = (dest_file + '/' +
-                         os.path.basename(source_file)).replace('//', '/')
+            dest_file = normpath(dest_file + '/' +
+                                 os.path.basename(source_file))
 
     if source['remote']:
-        source_file = source_file[2:].replace('//', '/')
+        source_file = normpath(source_file[2:])
         isfolder, id = get_pathinfo(pcloud, source_file)
         source['isfolder'] = isfolder
         source['id'] = id
