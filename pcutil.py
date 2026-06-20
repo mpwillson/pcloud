@@ -143,12 +143,6 @@ def copy_file(pcloud, source, dest):
     '''Copy single file from source to dest.'''
     dryrun = Key.DRYRUN in pcloud.config[Key.ASPECT]
     if source['remote']:
-        if source['isfolder']:
-            pcloudapi.error(f'cannot copy folder; use --recusive: ' \
-                            f'{source["filename"]}')
-        if source['id'] < 0:
-            pcloudapi.error(f'source file does not exist: ' \
-                            f'p:{source["filename"]}')
         if dryrun:
             data = 'dummy'
         else:
@@ -174,9 +168,6 @@ def copy_file(pcloud, source, dest):
                             f'{source["filename"]}')
     else:
         source_file = source['filename']
-        if source['isfolder']:
-            pcloudapi.error('cannot copy folder; use -r: '\
-                            f'{source_file}')
         data = read_file(source_file)
         destination = dest['filename']
         filename = os.path.basename(source_file)
@@ -277,25 +268,16 @@ def copy(pcloud, files):
     recursive = Key.RECURSIVE in pcloud.config[Key.ASPECT]
     source = files['source']
     dest = files['dest']
+    source_name = source['filename']
+
     if not recursive:
         copy_file(pcloud, source, dest)
         return
-
-    source_dir = source['filename']
-    if source['id'] < 0:
-        pcloudapi.error(f'source does not exist: {source_dir}')
-
     dest_dir = dest['filename']
-    if not dest['isfolder'] and dest['id'] >= 0:
-        # dest is file
-        pcloudapi.error(f'invalid recursive destination: {dest_dir}')
     if source['remote']:
          copy_from_remote(pcloud, source['id'], source['filename'], dest_dir)
     else:
-        if not source['isfolder']:
-            pcloudapi.error(f'source is not a directory: {source_dir}')
         copy_to_remote(pcloud, source, dest['id'], dest_dir)
-
     return
 
 def munge_local_filename(filename):
@@ -306,46 +288,53 @@ def munge_local_filename(filename):
     filename = os.path.expanduser(os.path.expandvars(filename))
     return filename
 
-def parse_filenames(pcloud, source_file, dest_file):
+def parse_filenames(pcloud, source_name, dest_name):
     '''Returns dict based on parsing source and destination paths.'''
     remote = [False, False]
     source = {}
     dest = {}
-    source['remote'] = source_file.startswith('p:')
-    dest['remote'] = dest_file.startswith('p:')
+    recursive = Key.RECURSIVE in pcloud.config[Key.ASPECT]
+    source['remote'] = source_name.startswith('p:')
+    dest['remote'] = dest_name.startswith('p:')
     if source['remote'] == dest['remote']:
         pcloudapi.error('cp: source and destination cannot be at same location')
 
-    if source_file != '/':
-        if source_file.endswith('/'):
-            source_file = source_file[:-1]
-        elif Key.RECURSIVE in pcloud.config[Key.ASPECT]:
-            dest_file = normpath(dest_file + '/' +
-                                 os.path.basename(source_file))
+    if source_name != '/':
+        if source_name.endswith('/'):
+            source_name = source_name[:-1]
+        elif recursive:
+            dest_name = normpath(dest_name + '/' +
+                                 os.path.basename(source_name))
 
     if source['remote']:
-        source_file = normpath(source_file[2:])
-        isfolder, id = get_pathinfo(pcloud, source_file)
+        source_name = normpath(source_name[2:])
+        isfolder, id = get_pathinfo(pcloud, source_name)
         source['isfolder'] = isfolder
         source['id'] = id
     else:
-        source_file = munge_local_filename(source_file)
-        source['isfolder'] = os.path.isdir(source_file)
-        source['id'] = 0 if os.path.exists(source_file) else -1
-    source['filename'] = source_file
+        source_name = munge_local_filename(source_name)
+        source['isfolder'] = os.path.isdir(source_name)
+        source['id'] = 0 if os.path.exists(source_name) else -1
+    source['filename'] = source_name
+    if source['id'] < 0:
+        pcloudapi.error(f'source does not exist: {source_name}')
+    elif source['isfolder'] and not recursive:
+        pcloudapi.error(f'cannot copy folder; use --recursive: {source_name}')
 
     if dest['remote']:
-        dest_file = dest_file[2:]
+        dest_name = dest_name[2:]
     else:
-        dest_file = munge_local_filename(dest_file)
-    dest['filename'] = dest_file
+        dest_name = munge_local_filename(dest_name)
+    dest['filename'] = dest_name
     if dest['remote']:
-        isfolder, id = get_pathinfo(pcloud, dest_file)
+        isfolder, id = get_pathinfo(pcloud, dest_name)
         dest['isfolder'] = isfolder
         dest['id'] = id
     else:
-        dest['isfolder'] = os.path.isdir(dest_file)
-        dest['id'] = 0 if os.path.exists(dest_file) else -1
+        dest['isfolder'] = os.path.isdir(dest_name)
+        dest['id'] = 0 if os.path.exists(dest_name) else -1
+    if recursive and dest['id'] >= 0 and not dest['isfolder']:
+        pcloudapi.error(f'invalid recursive destination: {dest_name}')
 
     return {'source': source, 'dest': dest}
 
