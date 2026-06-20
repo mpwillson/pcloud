@@ -199,7 +199,8 @@ class PCloud:
             try:
                 hostname = self.config[Key.ENDPOINT].replace('https://','')
                 binapi.open_socket(hostname,
-                                   self.config[Key.BINARY_API_PORT])
+                                   self.config[Key.BINARY_API_PORT],
+                                   self.config[Key.TIMEOUT]*5)
             except Exception as e:
                 raise PCloudException(self.config[Key.ENDPOINT], 9015,
                                       'unable to open binary api endpoint')

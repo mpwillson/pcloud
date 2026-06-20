@@ -155,12 +155,12 @@ def decode(msg):
     _, resp = decode_value(msg)
     return resp
 
-def open_socket(hostname, port):
+def open_socket(hostname, port, timeout=10):
     'Open an SSL-wrapped socket'
     global sock, ssock
     context = ssl.create_default_context()
     sock = socket.create_connection((hostname, port))
-    sock.settimeout(10)
+    sock.settimeout(timeout)
     ssock = context.wrap_socket(sock, server_hostname=hostname)
     return
 
