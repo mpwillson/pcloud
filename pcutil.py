@@ -51,11 +51,12 @@ def get_folder_structure(pcloud, path, fileid, fs = {}):
     return fs
 
 def pwalk(pcloud, folderid, folder_name):
-    '''Walks pCloud filesystem ala os.walk.'''
+    '''Walks pCloud filesystem ala os.walk. For each file/folder,
+       returns a tuple of (id, name).'''
     entries = get_contents(pcloud, folderid)
-    folders = [(entry['folderid'], entry['name'])
+    folders = [(entry['folderid'], folder_name+'/'+entry['name'])
                for entry in entries if entry['isfolder']]
-    files = [(entry['fileid'], entry['name'])
+    files = [(entry['fileid'], folder_name+'/'+entry['name'])
              for entry in entries if not entry['isfolder']]
     yield [(folderid, folder_name), folders, files]
     for folder in folders:
@@ -205,33 +206,27 @@ def copy_file(pcloud, source, dest):
             upload_file(pcloud, folderid, filename, data)
     return
 
-def copy_from_remote(pcloud, source_file, sourceid, dest):
+def copy_from_remote(pcloud, sourceid, source_file, dest):
     '''Copy files recursively from pCloud.'''
     dryrun = Key.DRYRUN in pcloud.config[Key.ASPECT]
-    if os.path.exists(dest):
-        if not os.path.isdir(dest):
-            pcloudapi.error(f'invalid destination: {dest}')
-    else:
-        if dryrun:
-            print(f'mkdir {dest}')
+    for root, folders, files in pwalk(pcloud, sourceid, source_file):
+        edest = normpath(dest+'/'+root[1].replace(source_file, ''))
+        if os.path.exists(edest):
+            if not os.path.isdir(edest):
+                pcloudapi.error(f'invalid destination: {edest}')
         else:
-            os.makedirs(dest)
-    #print(dest)
-    entries = get_contents(pcloud, sourceid)
-    folders = [entry for entry in entries if entry['isfolder']]
-    files = [entry for entry in entries if not entry['isfolder']]
+            if dryrun:
+                print(f'mkdir {edest}')
+            else:
+                os.makedirs(edest)
 
-    for folder in folders:
-        edest = normpath(f'{dest}/{folder["name"]}')
-        copy_from_remote(pcloud, folder['name'], folder['folderid'], edest)
-
-    for file_entry in files:
-        edest = normpath(f'{dest}/{file_entry["name"]}')
-        if dryrun:
-            print(f'cp p:[{file_entry["fileid"]}] {edest}')
-        else:
-            data = download_file_id(pcloud, file_entry['fileid'])
-            if data: write_file(edest, data)
+        for fileid, filename in files:
+            edest = normpath(f'{dest}/{filename.replace(source_file,"")}')
+            if dryrun:
+                print(f'cp p:{filename} {edest}')
+            else:
+                data = download_file_id(pcloud, fileid)
+                if data: write_file(edest, data)
     return
 
 def copy_to_remote(pcloud, source, folderid, folder_name):
@@ -265,7 +260,6 @@ def copy_to_remote(pcloud, source, folderid, folder_name):
                     folders[new_folder] = baseid = \
                         create_folder(pcloud, baseid, folder)
         else:
-            print(folders)
             pcloudapi.error(f'internal error: target folder doesn\'t exist: ' \
                             f'{base}')
         for file in files:
@@ -290,21 +284,21 @@ def copy(pcloud, files):
     source_dir = source['filename']
     if source['id'] < 0:
         pcloudapi.error(f'source does not exist: {source_dir}')
-    dest_file = dest['filename']
 
+    dest_dir = dest['filename']
     if not dest['isfolder'] and dest['id'] >= 0:
         # dest is file
-        pcloudapi.error(f'invalid recursive destination: {dest_file}')
+        pcloudapi.error(f'invalid recursive destination: {dest_dir}')
     if source['remote']:
-         copy_from_remote(pcloud, source['filename'], source['id'], dest_file)
+         copy_from_remote(pcloud, source['id'], source['filename'], dest_dir)
     else:
         if not source['isfolder']:
             pcloudapi.error(f'source is not a directory: {source_dir}')
-        copy_to_remote(pcloud, source, dest['id'], dest_file)
+        copy_to_remote(pcloud, source, dest['id'], dest_dir)
 
     return
 
-def local_file_munge(filename):
+def munge_local_filename(filename):
     if filename.startswith('..'):
         filename = filename.replace('..', os.path.dirname(os.getcwd()), 1)
     elif filename.startswith('.'):
@@ -335,7 +329,7 @@ def parse_filenames(pcloud, source_file, dest_file):
         source['isfolder'] = isfolder
         source['id'] = id
     else:
-        source_file = local_file_munge(source_file)
+        source_file = munge_local_filename(source_file)
         source['isfolder'] = os.path.isdir(source_file)
         source['id'] = 0 if os.path.exists(source_file) else -1
     source['filename'] = source_file
@@ -343,7 +337,7 @@ def parse_filenames(pcloud, source_file, dest_file):
     if dest['remote']:
         dest_file = dest_file[2:]
     else:
-        dest_file = local_file_munge(dest_file)
+        dest_file = munge_local_filename(dest_file)
     dest['filename'] = dest_file
     if dest['remote']:
         isfolder, id = get_pathinfo(pcloud, dest_file)
