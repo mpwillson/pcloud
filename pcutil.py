@@ -346,7 +346,7 @@ def rm(pcloud, pathnames):
         if not pathname.startswith('/'): pathname = '/' + pathname
         isfolder, id = get_pathinfo(pcloud, pathname)
         if id < 0:
-            pcloudapi.error(f'no such file/folder: {pathname}', False)
+            pcloudapi.error(f'rm: no such file/folder: {pathname}', False)
             continue
         if isfolder:
             if not recursive:
