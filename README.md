@@ -97,7 +97,7 @@ example with the core configuration options:
   "access_token": "",
   "binary-api-port": 8399,
   "timeout": 2,
-  "client-id" "randomID",
+  "client-id": "randomID",
   "verbose": false
 }
 
